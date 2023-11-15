@@ -8,15 +8,15 @@ using InteractiveUtils
 using Images,FFTW,StatsBase
 
 # ╔═╡ 41bb2ce2-7e30-11ee-2707-03ad2fe5569b
-function rellenar(im)
-	n,m = size(im)
+function rellenar(M)
+	n,m = size(M)
 	relleno_n = 16-n%16
 	relleno_m = 16-m%16 
 	n2 = n+relleno_n
 	m2 = m+relleno_m
-	im2 = fill(RGB(0.,0.,0.),n2,m2)
-	im2[relleno_n÷2+1:relleno_n÷2+n,relleno_m÷2+1:relleno_m÷2+m] = im
-	return im2
+	M2 = fill(RGB(0.,0.,0.),n2,m2)
+	M2[relleno_n÷2+1:relleno_n÷2+n,relleno_m÷2+1:relleno_m÷2+m] = M
+	return M2
 end
 
 # ╔═╡ 8588305b-796a-43c2-afc2-c68f98e6d158
@@ -31,19 +31,7 @@ function reducir(M)
 	return M2
 end
 
-# ╔═╡ a33a685d-6b2f-4936-873c-651122e4556b
-function convertir(im)
-	im2 = YCbCr.(im)
-	separados = channelview(im2)
-	Y = separados[1,:,:]
-	Cb = separados[2,:,:]
-	Cr = separados[3,:,:]
-	Cb2 = reducir(Cb)
-	Cr2 = reducir(Cr)
-	return Y.-128, Cb2.-128, Cr2.-128
-end
-
-# ╔═╡ db717eba-4a70-48f6-ba62-d7820a5c94c9
+# ╔═╡ 03460faf-5c11-41a7-9bb4-8733d651eaa9
 function expandir(M)
 	n,m = size(M)
 	M2 = Array{Float64}(undef, n*2, m*2)
@@ -55,8 +43,20 @@ function expandir(M)
 	return M2
 end
 
+# ╔═╡ a33a685d-6b2f-4936-873c-651122e4556b
+function RGB_a_YCbCr(im)
+	im2 = YCbCr.(im)
+	separados = channelview(im2)
+	Y = separados[1,:,:]
+	Cb = separados[2,:,:]
+	Cr = separados[3,:,:]
+	Cb2 = reducir(Cb)
+	Cr2 = reducir(Cr)
+	return Y.-128, Cb2.-128, Cr2.-128
+end
+
 # ╔═╡ bbbade71-0a18-4b2a-bdeb-8bb8c1d7e99f
-function volver(Y, Cb, Cr)
+function YCbCr_a_RGB(Y, Cb, Cr)
 	Y2 = Y.+128
 	Cb2 = Cb.+128
 	Cr2 = Cr.+128
@@ -64,7 +64,7 @@ function volver(Y, Cb, Cr)
 end
 
 # ╔═╡ baff9ce0-fa92-439e-a7e6-5b555fc2e1ea
-function transformar_mat(M)
+function transformada_mat(M)
 	n,m = size(M)
 	for i in 1:8:n
 		for j in 1:8:m
@@ -74,13 +74,8 @@ function transformar_mat(M)
 	return M
 end
 
-# ╔═╡ f331dbf2-1d2b-4530-b4f7-37b5143749cb
-function transformar_canales(Y, Cb, Cr)
-	return transformar_mat(Y), transformar_mat(Cb), transformar_mat(Cr)
-end
-
-# ╔═╡ a1a7756d-1ac0-4efe-b60c-b6306e65275e
-function transformar_mat_i(M)
+# ╔═╡ d144344e-3c3c-4c74-9d2e-fc344ddb496a
+function transformada_mat_i(M)
 	n,m = size(M)
 	for i in 1:8:n
 		for j in 1:8:m
@@ -90,16 +85,20 @@ function transformar_mat_i(M)
 	return M
 end
 
+# ╔═╡ f331dbf2-1d2b-4530-b4f7-37b5143749cb
+function transformada_canales(Y, Cb, Cr)
+	return transformada_mat(Y), transformada_mat(Cb), transformada_mat(Cr)
+end
+
 # ╔═╡ 759dcb53-76e2-4fdf-b76d-5c616c09a0f3
-function transformar_canales_i(Yt,Cbt,Crt)
-	return transformar_mat_i(Yt), transformar_mat_i(Cbt), transformar_mat_i(Crt)
+function transformada_canales_i(Yt,Cbt,Crt)
+	return transformada_mat_i(Yt), transformada_mat_i(Cbt), transformada_mat_i(Crt)
 end
 
 # ╔═╡ 5837ed55-883f-4a0a-96e1-98154366e013
-function cuantizacion(M,quant)
+function cuantizacion_mat(M,quant)
 	n,m = size(M)
 	M2 = Array{Float64}(undef, n, m)
-	
 	for i in 1:8:n
 		for j in 1:8:m
 			M2[i:i+7,j:j+7] = round.(M[i:i+7,j:j+7]./quant)
@@ -109,15 +108,25 @@ function cuantizacion(M,quant)
 end
 
 # ╔═╡ 3efb088e-9b9e-47ce-9df0-702c385ab7ae
-function cuantizacion_i(M,quant)
+function cuantizacion_mat_i(M,quant)
 	n,m = size(M)
 	M2 = Array{Float64}(undef, n, m)
 	for i in 1:8:n
 		for j in 1:8:m
-			M2[i:i+7,j:j+7] = round.(M[i:i+7,j:j+7].*quant)
+			M2[i:i+7,j:j+7] = (M[i:i+7,j:j+7].*quant)
 		end
 	end
 	return M2
+end
+
+# ╔═╡ 4a4be357-b1c0-49c2-960e-3e922a23885b
+function cuantizacion_canales(Y,Cb,Cr,quant)
+	return cuantizacion_mat(Y,quant), cuantizacion_mat(Cb,quant), cuantizacion_mat(Cr,quant)
+end
+
+# ╔═╡ f0723d66-9be1-41b9-b97d-df035712e14d
+function cuantizacion_canales_i(Y,Cb,Cr,quant)
+	return cuantizacion_mat_i(Y,quant), cuantizacion_mat_i(Cb,quant), cuantizacion_mat_i(Cr,quant)
 end
 
 # ╔═╡ 1ce8d204-e852-4bcd-8f1e-ed11623a0e5a
@@ -138,31 +147,9 @@ function zig_zag(M)
 	return v
 end
 
-# ╔═╡ e7263c41-6898-4156-a71e-ba2e89ab2692
-function vectorizar(M)
-	n,m = size(M)
-	n2 = n÷8
-	m2 = m÷8
-	v = []
-	for i in 1:n2
-		for j in 1:m2
-			vals,reps = rle(zig_zag(M[8i-7:8i,8j-7:8j]))
-			push!(v,reps...)
-			push!(v,vals...)
-		end
-	end
-	return v
-end
-
-# ╔═╡ f5e5b7bc-05cb-472d-bf5f-664c65c280cc
-function tiras(Y,Cb,Cr)
-	return vcat(vectorizar(Y),vectorizar(Cb),vectorizar(Cr))
-end
-
-# ╔═╡ 27731dcc-ee0f-4c78-8528-8e417a00112a
+# ╔═╡ 5bb47b0f-9e2b-45ca-b82c-d6cf8d81f0c1
 function zig_zag_i(v)
 	M = Array{Float64}(undef, 8, 8)
-	#N=8
 	N = size(M)[1]
 	for i in 1:N*2
 		for j in 1:i
@@ -179,7 +166,23 @@ function zig_zag_i(v)
 	
 end
 
-# ╔═╡ bcea21ee-37ea-4986-9bc3-aab892ba96a3
+# ╔═╡ e7263c41-6898-4156-a71e-ba2e89ab2692
+function matriz_a_vector(M)
+	n,m = size(M)
+	n2 = n÷8
+	m2 = m÷8
+	v = []
+	for i in 1:n2
+		for j in 1:m2
+			vals,reps = rle(zig_zag(M[8i-7:8i,8j-7:8j]))
+			push!(v,reps...)
+			push!(v,vals...)
+		end
+	end
+	return v
+end
+
+# ╔═╡ d9b9d299-4749-4aa8-8cec-e818d9ce8338
 function vector_a_matriz(v,n,m,pos_0)
 	M = Array{Float64}(undef, n, m)
 	a=1
@@ -199,7 +202,6 @@ function vector_a_matriz(v,n,m,pos_0)
 			M_aux = zig_zag_i(inv)
 
 			M[a:a+7,b:b+7] = M_aux
-			
 			b=b+8
 			if b>=m+1
 				b=1
@@ -215,8 +217,13 @@ function vector_a_matriz(v,n,m,pos_0)
 	return M, i
 end
 
+# ╔═╡ f5e5b7bc-05cb-472d-bf5f-664c65c280cc
+function armar_tira(Y,Cb,Cr)
+	return vcat(matriz_a_vector(Y),matriz_a_vector(Cb),matriz_a_vector(Cr))
+end
+
 # ╔═╡ a19137e2-3ce1-46cf-b86e-179c1db3069d
-function tiras_i(v,n,m)
+function desarmar_tira(v,n,m)
 	Y , pos_Cb = vector_a_matriz(v,n,m,1)
 	Cb, pos_Cr = vector_a_matriz(v,n÷2,m÷2,pos_Cb)
 	Cr, pos_final = vector_a_matriz(v,n÷2, m÷2, pos_Cr)
@@ -225,12 +232,10 @@ function tiras_i(v,n,m)
 end
 
 # ╔═╡ 782d312c-5fc2-4200-9d27-775f71bedf83
-function guardar(n,m,quant,v, nombre)
+function guardar(n, m, quant, v, nombre)
 	io = open(nombre,"w")
-	print(m)
 	write(io,n)
 	write(io,m)
-	#write(io,transpose(Int64.(quant)))
 	for i in 1:8
 		for j in 1:8
 			write(io,quant[i,j])
@@ -247,11 +252,11 @@ function leer(archivo)
 	io = open(archivo)
 	n = read(io,Int64)
 	m = read(io,Int64)
-	Q = Array{Float64}(undef, 8, 8)
+	quant = Array{Float64}(undef, 8, 8)
 	
 	for i in 1:8
 		for j in 1:8
-			Q[i,j] = read(io,Int64)
+			quant[i,j] = read(io,Int64)
 		end
 	end
 	v=[]
@@ -261,43 +266,37 @@ function leer(archivo)
 	end
 	close(io)
 
-	return n, m, Q, v
+	return n, m, quant, v
 end
 
 # ╔═╡ 2505b38b-65a6-4f6f-ba7b-f8797d430259
 function comprimir(archivo,quant,nombre_comprimido)
-	Q = load(archivo)
-	#Q = archivo
-	Q2 = rellenar(Q)
-	n, m = size(Q2)
-	Y,Cb,Cr = convertir(Q2)
-	Yt, Cbt, Crt = transformar_canales(Y,Cb,Cr)
-	Yq = cuantizacion(Yt,quant)
-	Cbq = cuantizacion(Cbt,quant)
-	Crq = cuantizacion(Crt,quant)
-	v = tiras(Yq,Cbq,Crq)
+	Im = load(archivo)
+	Im2 = rellenar(Im)
+	n, m = size(Im2)
+	Y,Cb,Cr = RGB_a_YCbCr(Im2)
+	Yt, Cbt, Crt = transformada_canales(Y,Cb,Cr)
+	Yq, Cbq, Crq = cuantizacion_canales(Yt, Cbt, Crt, quant)
+	v = armar_tira(Yq,Cbq,Crq)
 	guardar(n,m,quant, v, nombre_comprimido)
-	#guardar(n,m,quant, [], "comprimido.cmp")
 end
 
 # ╔═╡ fa336ae2-a702-4cc8-b864-883db3260a5f
 function descomprimir(archivo)
 	n, m, quant, v = leer(archivo)
-	Yq, Cbq, Crq = tiras_i(v,n,m)
-	Yt = cuantizacion(Yq,quant)
-	Cbt = cuantizacion(Cbq,quant)
-	Crt = cuantizacion(Crq,quant)
-	Y, Cb, Cr = transformar_canales_i(Yt, Cbt, Crt)
-	Q2 = volver(Y,Cb,Cr)
+	Yq, Cbq, Crq = desarmar_tira(v,n,m)
+	Yt, Cbt, Crt = cuantizacion_canales_i(Yq, Cbq, Crq, quant)
+	Y, Cb, Cr = transformada_canales_i(Yt, Cbt, Crt)
+	Im_reconstruida = YCbCr_a_RGB(Y,Cb,Cr)
+	return Im_reconstruida
 end
 
 # ╔═╡ ffe39536-8117-4f38-a9be-d4bb60643f46
 md""" ### Pruebas """
 
-# ╔═╡ 9d766e29-ebab-4ad4-968a-99d24beaeefe
+# ╔═╡ 7bd74fcd-0489-4b36-9041-aabf7283e582
 begin
-	im = RGB.(rand(RGB,19,107))
-	quant=[16 11 10 16 24 40 51 61;
+	quant1=[16 11 10 16 24 40 51 61;
            12 12 14 19 26 58 60 55;
            14 13 16 24 40 57 69 56;
            14 17 22 29 51 87 80 62;
@@ -305,24 +304,79 @@ begin
            24 35 55 64 81 104 113 92;
            49 64 78 87 103 121 120 101;
            72 92 95 98 112 100 103 99]
-	comprimir("Meisje_met_de_parel.jpg",quant,"comprimido2.cmp")
+	
+	quant2=[1 2 3 4 5 6 7 8;
+            2 3 4 5 6 7 8 9;
+            3 4 5 6 7 8 9 10;
+            4 5 6 7 8 9 10 11;
+            5 6 7 8 9 10 11 12;
+            6 7 8 9 10 11 12 13;
+            7 8 9 10 11 12 13 14;
+            8 9 10 11 12 13 14 15]
+
+	quant3=[10 20 30 40 50 60 70 80;
+            20 30 40 50 60 70 80 90;
+            30 40 50 60 70 80 90 100;
+            40 50 60 70 80 90 100 110;
+            50 60 70 80 90 100 110 120;
+            60 70 80 90 100 110 120 130;
+            70 80 90 100 110 120 130 140;
+            80 90 100 110 120 130 140 150]
 end
 
 # ╔═╡ 739bf2bd-8415-4bc4-85cb-4ddabd2401fa
-descomprimir("comprimido2.cmp")
-
-# ╔═╡ 0e819a69-72bb-4c64-a6c3-f128e591241c
-
-
-# ╔═╡ 2c68ec82-715c-422b-b11c-de10ebe02877
 begin
-	M3 = Array{Float64}(undef, 16, 16)
-	for i in 1:16
-		for j in 1:16
-			M3[i,j] = i+j-1
-		end
-	end
+	comprimir("Meisje_met_de_parel.jpg",quant1,"prueba1.cmp")
+	descomprimir("prueba1.cmp") 
 end
+
+# ╔═╡ c8b393f8-1ee9-4d89-8e81-aab29ccaac00
+#begin
+#	comprimir("Meisje_met_de_parel.jpg",quant2,"prueba2.cmp")
+#	descomprimir("prueba2.cmp")
+#end
+
+# ╔═╡ 60bbaba1-89b0-48ce-9346-114856cf586f
+#begin
+#	comprimir("Meisje_met_de_parel.jpg",quant3,"prueba3.cmp")
+#	descomprimir("prueba3.cmp")
+#end
+
+# ╔═╡ e6dedd44-06d7-4737-b852-dad03e7c6496
+#begin
+#	comprimir("paisaje.bmp",quant1,"prueba4.cmp")
+#	descomprimir("prueba4.cmp")
+#end
+
+# ╔═╡ 30baada0-2cd9-4f8c-9889-1ffdf5612267
+#begin
+#	comprimir("paisaje.bmp",quant2,"prueba5.cmp")
+#	descomprimir("prueba5.cmp")
+#end
+
+# ╔═╡ 60a16e9d-6c6c-4125-8e6a-01a38b9e94fb
+#begin
+#	comprimir("paisaje.bmp",quant3,"prueba6.cmp")
+#	descomprimir("prueba6.cmp")
+#end
+
+# ╔═╡ 41bb355d-7636-4e9a-8338-3943664b92e5
+#begin
+#	comprimir("bolitas.bmp",quant1,"prueba7.cmp")
+#	descomprimir("prueba7.cmp")
+#end
+
+# ╔═╡ 8c1e4c20-c796-4a3d-9936-f0aa6da3277e
+#begin
+#	comprimir("bolitas.bmp",quant2,"prueba8.cmp")
+#	descomprimir("prueba8.cmp")
+#end
+
+# ╔═╡ d8a911c8-1e2a-4020-af8b-24e66dc12395
+#begin
+#	comprimir("bolitas.bmp",quant3,"prueba9.cmp")
+#	descomprimir("prueba9.cmp")
+#end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1404,32 +1458,40 @@ version = "17.4.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╟─8a4bb017-d949-493f-9ec7-d5aa9921e87e
+# ╠═8a4bb017-d949-493f-9ec7-d5aa9921e87e
 # ╟─41bb2ce2-7e30-11ee-2707-03ad2fe5569b
 # ╟─8588305b-796a-43c2-afc2-c68f98e6d158
+# ╟─03460faf-5c11-41a7-9bb4-8733d651eaa9
 # ╟─a33a685d-6b2f-4936-873c-651122e4556b
-# ╟─db717eba-4a70-48f6-ba62-d7820a5c94c9
 # ╟─bbbade71-0a18-4b2a-bdeb-8bb8c1d7e99f
 # ╟─baff9ce0-fa92-439e-a7e6-5b555fc2e1ea
+# ╟─d144344e-3c3c-4c74-9d2e-fc344ddb496a
 # ╟─f331dbf2-1d2b-4530-b4f7-37b5143749cb
-# ╟─a1a7756d-1ac0-4efe-b60c-b6306e65275e
 # ╟─759dcb53-76e2-4fdf-b76d-5c616c09a0f3
 # ╟─5837ed55-883f-4a0a-96e1-98154366e013
 # ╟─3efb088e-9b9e-47ce-9df0-702c385ab7ae
+# ╟─4a4be357-b1c0-49c2-960e-3e922a23885b
+# ╟─f0723d66-9be1-41b9-b97d-df035712e14d
 # ╟─1ce8d204-e852-4bcd-8f1e-ed11623a0e5a
+# ╟─5bb47b0f-9e2b-45ca-b82c-d6cf8d81f0c1
 # ╟─e7263c41-6898-4156-a71e-ba2e89ab2692
+# ╟─d9b9d299-4749-4aa8-8cec-e818d9ce8338
 # ╟─f5e5b7bc-05cb-472d-bf5f-664c65c280cc
-# ╟─27731dcc-ee0f-4c78-8528-8e417a00112a
-# ╟─bcea21ee-37ea-4986-9bc3-aab892ba96a3
 # ╟─a19137e2-3ce1-46cf-b86e-179c1db3069d
 # ╟─782d312c-5fc2-4200-9d27-775f71bedf83
 # ╟─599344ad-dc0e-4751-99f8-dd4f2d4abcf1
 # ╟─2505b38b-65a6-4f6f-ba7b-f8797d430259
 # ╟─fa336ae2-a702-4cc8-b864-883db3260a5f
 # ╟─ffe39536-8117-4f38-a9be-d4bb60643f46
-# ╠═9d766e29-ebab-4ad4-968a-99d24beaeefe
+# ╟─7bd74fcd-0489-4b36-9041-aabf7283e582
 # ╠═739bf2bd-8415-4bc4-85cb-4ddabd2401fa
-# ╠═0e819a69-72bb-4c64-a6c3-f128e591241c
-# ╟─2c68ec82-715c-422b-b11c-de10ebe02877
+# ╠═c8b393f8-1ee9-4d89-8e81-aab29ccaac00
+# ╠═60bbaba1-89b0-48ce-9346-114856cf586f
+# ╠═e6dedd44-06d7-4737-b852-dad03e7c6496
+# ╠═30baada0-2cd9-4f8c-9889-1ffdf5612267
+# ╠═60a16e9d-6c6c-4125-8e6a-01a38b9e94fb
+# ╠═41bb355d-7636-4e9a-8338-3943664b92e5
+# ╠═8c1e4c20-c796-4a3d-9936-f0aa6da3277e
+# ╠═d8a911c8-1e2a-4020-af8b-24e66dc12395
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
