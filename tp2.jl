@@ -234,15 +234,15 @@ end
 # ╔═╡ 782d312c-5fc2-4200-9d27-775f71bedf83
 function guardar(n, m, quant, v, nombre)
 	io = open(nombre,"w")
-	write(io,n)
-	write(io,m)
+	write(io,UInt16(n))
+	write(io,UInt16(m))
 	for i in 1:8
 		for j in 1:8
-			write(io,quant[i,j])
+			write(io, UInt8(quant[i,j]))
 		end
 	end
 	for i in 1:size(v)[1]
-		write(io,v[i])
+		write(io,Int8(v[i]))
 	end
 	close(io)
 end
@@ -250,35 +250,23 @@ end
 # ╔═╡ 599344ad-dc0e-4751-99f8-dd4f2d4abcf1
 function leer(archivo)
 	io = open(archivo)
-	n = read(io,Int64)
-	m = read(io,Int64)
+	n = read(io,UInt16)
+	m = read(io,UInt16)
 	quant = Array{Float64}(undef, 8, 8)
 	
 	for i in 1:8
 		for j in 1:8
-			quant[i,j] = read(io,Int64)
+			quant[i,j] = read(io,UInt8)
 		end
 	end
 	v=[]
 	while !eof(io)
-		x=read(io,Int64)
+		x=read(io,Int8)
 		push!(v,x)
 	end
 	close(io)
 
 	return n, m, quant, v
-end
-
-# ╔═╡ 2505b38b-65a6-4f6f-ba7b-f8797d430259
-function comprimir(archivo,quant,nombre_comprimido)
-	Im = load(archivo)
-	Im2 = rellenar(Im)
-	n, m = size(Im2)
-	Y,Cb,Cr = RGB_a_YCbCr(Im2)
-	Yt, Cbt, Crt = transformada_canales(Y,Cb,Cr)
-	Yq, Cbq, Crq = cuantizacion_canales(Yt, Cbt, Crt, quant)
-	v = armar_tira(Yq,Cbq,Crq)
-	guardar(n,m,quant, v, nombre_comprimido)
 end
 
 # ╔═╡ fa336ae2-a702-4cc8-b864-883db3260a5f
@@ -291,9 +279,6 @@ function descomprimir(archivo)
 	return Im_reconstruida
 end
 
-# ╔═╡ ffe39536-8117-4f38-a9be-d4bb60643f46
-md""" ### Pruebas """
-
 # ╔═╡ 7bd74fcd-0489-4b36-9041-aabf7283e582
 begin
 	quant1=[16 11 10 16 24 40 51 61;
@@ -304,17 +289,8 @@ begin
            24 35 55 64 81 104 113 92;
            49 64 78 87 103 121 120 101;
            72 92 95 98 112 100 103 99]
-	
-	quant2=[1 2 3 4 5 6 7 8;
-            2 3 4 5 6 7 8 9;
-            3 4 5 6 7 8 9 10;
-            4 5 6 7 8 9 10 11;
-            5 6 7 8 9 10 11 12;
-            6 7 8 9 10 11 12 13;
-            7 8 9 10 11 12 13 14;
-            8 9 10 11 12 13 14 15]
 
-	quant3=[10 20 30 40 50 60 70 80;
+	quant2=[10 20 30 40 50 60 70 80;
             20 30 40 50 60 70 80 90;
             30 40 50 60 70 80 90 100;
             40 50 60 70 80 90 100 110;
@@ -324,58 +300,60 @@ begin
             80 90 100 110 120 130 140 150]
 end
 
-# ╔═╡ 739bf2bd-8415-4bc4-85cb-4ddabd2401fa
-begin
-	comprimir("Meisje_met_de_parel.jpg",quant1,"prueba1.cmp")
-	descomprimir("prueba1.cmp") 
+# ╔═╡ 2505b38b-65a6-4f6f-ba7b-f8797d430259
+function comprimir(archivo,quant=quant1)
+	Im = load(archivo)
+	Im2 = rellenar(Im)
+	n, m = size(Im2)
+	Y,Cb,Cr = RGB_a_YCbCr(Im2)
+	Yt, Cbt, Crt = transformada_canales(Y,Cb,Cr)
+	Yq, Cbq, Crq = cuantizacion_canales(Yt, Cbt, Crt, quant)
+	v = armar_tira(Yq,Cbq,Crq)
+	nombre_comprimido = split(archivo, ".")[1] * ".comp"
+	guardar(n,m,quant, v, nombre_comprimido)
 end
+
+# ╔═╡ c1998b1e-237a-4c4c-85a7-a0a8cd236e63
+# Para comprimir una imagen usamos la funcion comprimir y pasamos el archivo como parametro. Este sera guardado con el mismo nombre pero con extension .comp
+# Definimos las matrices de cuantificacion quant1 y quant2. Por default la compresion se hace usando quant1 pero se puede pasar una matriz de cuantizacion como parametro si se desea usar otra
+# Para descomprimir un archivo usamos la funcion descomprimir pasandole como parametro el nombre del archivo original con la extension .comp
+# Es necesario comprimir primero para despues poder descomprimir
+# Las siguientes lineas son ejemplos de como hacer la compresion/descompresion con las imagenes brindadas por la catedra
+
+# ╔═╡ 739bf2bd-8415-4bc4-85cb-4ddabd2401fa
+#begin
+#	comprimir("Meisje_met_de_parel.jpg")
+#	descomprimir("Meisje_met_de_parel.comp") 
+#end
 
 # ╔═╡ c8b393f8-1ee9-4d89-8e81-aab29ccaac00
 #begin
-#	comprimir("Meisje_met_de_parel.jpg",quant2,"prueba2.cmp")
-#	descomprimir("prueba2.cmp")
-#end
-
-# ╔═╡ 60bbaba1-89b0-48ce-9346-114856cf586f
-#begin
-#	comprimir("Meisje_met_de_parel.jpg",quant3,"prueba3.cmp")
-#	descomprimir("prueba3.cmp")
+#	comprimir("Meisje_met_de_parel.jpg",quant2)
+#	descomprimir("Meisje_met_de_parel.comp") 
 #end
 
 # ╔═╡ e6dedd44-06d7-4737-b852-dad03e7c6496
 #begin
-#	comprimir("paisaje.bmp",quant1,"prueba4.cmp")
-#	descomprimir("prueba4.cmp")
+#	comprimir("paisaje.bmp")
+#	descomprimir("paisaje.comp")
 #end
 
 # ╔═╡ 30baada0-2cd9-4f8c-9889-1ffdf5612267
 #begin
-#	comprimir("paisaje.bmp",quant2,"prueba5.cmp")
-#	descomprimir("prueba5.cmp")
-#end
-
-# ╔═╡ 60a16e9d-6c6c-4125-8e6a-01a38b9e94fb
-#begin
-#	comprimir("paisaje.bmp",quant3,"prueba6.cmp")
-#	descomprimir("prueba6.cmp")
+#	comprimir("paisaje.bmp",quant2)
+#	descomprimir("paisaje.comp")
 #end
 
 # ╔═╡ 41bb355d-7636-4e9a-8338-3943664b92e5
 #begin
-#	comprimir("bolitas.bmp",quant1,"prueba7.cmp")
-#	descomprimir("prueba7.cmp")
+#	comprimir("bolitas.bmp")
+#	descomprimir("bolitas.comp")
 #end
 
 # ╔═╡ 8c1e4c20-c796-4a3d-9936-f0aa6da3277e
 #begin
-#	comprimir("bolitas.bmp",quant2,"prueba8.cmp")
-#	descomprimir("prueba8.cmp")
-#end
-
-# ╔═╡ d8a911c8-1e2a-4020-af8b-24e66dc12395
-#begin
-#	comprimir("bolitas.bmp",quant3,"prueba9.cmp")
-#	descomprimir("prueba9.cmp")
+#	comprimir("bolitas.bmp",quant2)
+#   descomprimir("bolitas.comp")
 #end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -1458,7 +1436,7 @@ version = "17.4.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═8a4bb017-d949-493f-9ec7-d5aa9921e87e
+# ╟─8a4bb017-d949-493f-9ec7-d5aa9921e87e
 # ╟─41bb2ce2-7e30-11ee-2707-03ad2fe5569b
 # ╟─8588305b-796a-43c2-afc2-c68f98e6d158
 # ╟─03460faf-5c11-41a7-9bb4-8733d651eaa9
@@ -1481,17 +1459,14 @@ version = "17.4.0+0"
 # ╟─782d312c-5fc2-4200-9d27-775f71bedf83
 # ╟─599344ad-dc0e-4751-99f8-dd4f2d4abcf1
 # ╟─2505b38b-65a6-4f6f-ba7b-f8797d430259
-# ╟─fa336ae2-a702-4cc8-b864-883db3260a5f
-# ╟─ffe39536-8117-4f38-a9be-d4bb60643f46
+# ╠═fa336ae2-a702-4cc8-b864-883db3260a5f
 # ╟─7bd74fcd-0489-4b36-9041-aabf7283e582
+# ╠═c1998b1e-237a-4c4c-85a7-a0a8cd236e63
 # ╠═739bf2bd-8415-4bc4-85cb-4ddabd2401fa
 # ╠═c8b393f8-1ee9-4d89-8e81-aab29ccaac00
-# ╠═60bbaba1-89b0-48ce-9346-114856cf586f
 # ╠═e6dedd44-06d7-4737-b852-dad03e7c6496
 # ╠═30baada0-2cd9-4f8c-9889-1ffdf5612267
-# ╠═60a16e9d-6c6c-4125-8e6a-01a38b9e94fb
 # ╠═41bb355d-7636-4e9a-8338-3943664b92e5
 # ╠═8c1e4c20-c796-4a3d-9936-f0aa6da3277e
-# ╠═d8a911c8-1e2a-4020-af8b-24e66dc12395
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
