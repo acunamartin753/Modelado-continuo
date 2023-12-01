@@ -10,42 +10,41 @@
 # El usuario solo maneja las funciones comprimir y descomprimir. El resto son funciones auxiliares de estas dos, cuyo nombre es declarativo sobre su funcionamiento
 # Las siguientes lineas son ejemplos de como hacer la compresion/descompresion con las imagenes brindadas por la catedra 
 
-# 	La forma mas sencilla en que se puede comprimir/descomprimir una imagen (Sin sacar el relleno)
-#	comprimir("Meisje_met_de_parel.jpg")
-#	descomprimir("Meisje_met_de_parel.comp") 
+# La forma mas sencilla en que se puede comprimir/descomprimir una imagen (Sin sacar el relleno)
+# comprimir("Meisje_met_de_parel.jpg")
+# descomprimir("Meisje_met_de_parel.comp") 
 
-# 	Si queremos sacar el relleno de los bordes
-#	medidas = comprimir("Meisje_met_de_parel.jpg")
-#	descomprimir("Meisje_met_de_parel.comp", medidas) 
+# Si queremos sacar el relleno de los bordes
+# medidas = comprimir("Meisje_met_de_parel.jpg")
+# descomprimir("Meisje_met_de_parel.comp", medidas) 
 
-# 	Si queremos usar otra matriz de cuantizacion
-#	comprimir("Meisje_met_de_parel.jpg",quant2)
-#	descomprimir("Meisje_met_de_parel.comp") 
+# Si queremos usar otra matriz de cuantizacion
+# comprimir("Meisje_met_de_parel.jpg",quant2)
+# descomprimir("Meisje_met_de_parel.comp") 
 
-# 	Otros ejemplos
-#	comprimir("paisaje.bmp")
-#	descomprimir("paisaje.comp")
+# Otros ejemplos
+# comprimir("paisaje.bmp")
+# descomprimir("paisaje.comp")
 
-# 	Otros ejemplos
-#	medidas = comprimir("paisaje.bmp")
-#	descomprimir("paisaje.comp",medidas)
+# Otros ejemplos
+# medidas = comprimir("paisaje.bmp")
+# descomprimir("paisaje.comp",medidas)
 
-# 	Otros ejemplos
-#	medidas = comprimir("paisaje.bmp", quant2)
-#	descomprimir("paisaje.comp",medidas)
+# Otros ejemplos
+# medidas = comprimir("paisaje.bmp", quant2)
+# descomprimir("paisaje.comp",medidas)
 
-# 	Otros ejemplos
-#	comprimir("bolitas.bmp")
-#	descomprimir("bolitas.comp")
+# Otros ejemplos
+# comprimir("bolitas.bmp")
+# descomprimir("bolitas.comp")
 
-# 	Otros ejemplos
-#	medidas = comprimir("bolitas.bmp")
-#   	descomprimir("bolitas.comp", medidas)
+# Otros ejemplos
+# medidas = comprimir("bolitas.bmp")
+# descomprimir("bolitas.comp", medidas)
 
-# 	Otros ejemplos
-#	medidas = comprimir("bolitas.bmp",quant2)
-#   	descomprimir("bolitas.comp", medidas)
-
+# Otros ejemplos
+# medidas = comprimir("bolitas.bmp",quant2)
+# descomprimir("bolitas.comp", medidas)
 
 import Pkg
 Pkg.add("Images")
