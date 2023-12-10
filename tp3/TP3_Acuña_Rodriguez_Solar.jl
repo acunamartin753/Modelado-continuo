@@ -106,76 +106,78 @@ md""" El metodo implicito es mas estable y nos da mas rango para variar los para
 md""" Mientras mas grande es el parametro α, mas rapida es la difusion"""
 
 # ╔═╡ 82f797b1-7f22-4383-9946-f8f49ec81d03
-md""" # Ecuacion del calor en dos dimensiones """
+md""" # Difusion en dos dimensiones """
 
 # ╔═╡ 7c2d9c90-a983-45bb-945a-1d49c5904d3c
 function pos_vector(i,j,m)
 	return (i-1)*m+j
 end
 
-# ╔═╡ 7bcbb51f-cdd6-48f6-b340-16ad7ab4e3b3
-function pos_valida(i,j,m)
-	return (1<=i && i<=m && 1<=j && j<=m)
-end
-
-# ╔═╡ 20e5af22-5ea6-4df0-801b-df60d6ef5cf8
-function g_2D(x, y)
-	return 1
-end
-
-# ╔═╡ d35f8367-3a63-42f9-97b9-dfc81be2be45
-function llenar_matriz(A,α,Δt,h)
-	n = Int(sqrt(size(A)[1]))
-	dx = [0,1,0,-1]
-	dy = [1,0,-1,0]
-
-
+# ╔═╡ ce8449cd-9c81-43c5-bbc0-ed9e1dcbeb87
+function matriz_2D(n,α,Δt,h)
+	A = zeros(n*n,n*n)
+	v1 = (Δt*α*4)/(h*h)
+	v2 = -(Δt*α*1)/(h*h)
+	M = diagm(1 => [v2 for i in 1:n-1],0=>[v1 for i in 1:n],-1=>[v2 for i in 1:n-1])
+	C = diagm([v2 for i in 1:n])
 	for i in 1:n
-		for j in 1:n
-			k = pos_vector(i,j,n) 
-			A[k,k] = (Δt*α*4)/(h*h)
-			for q in 1:4
-				ii = i+dx[q]
-				jj = j+dy[q]
-				if pos_valida(ii,jj,n) 
-					p = pos_vector(ii,jj,n) 
-					A[k,p] = -(Δt*α*1)/(h*h)
-				end
-			end
-		end
+		A[(i-1)*n+1:(i-1)*n+n,(i-1)*n+1:(i-1)*n+n] = M
+	end
+	for i in 1:n-1
+		A[(i-1)*n+1:(i-1)*n+n,n+(i-1)*n+1:n+(i-1)*n+n] = C
+		A[n+(i-1)*n+1:n+(i-1)*n+n,(i-1)*n+1:(i-1)*n+n] = C
 	end
 	
 	return A+I
-end				
+end		
+
+# ╔═╡ d114a579-1f1e-4da2-b7fe-ce87a6bca1cc
+function matriz_2D_rala(n,α,Δt,h)
+	A = spzeros(n*n,n*n)
+	v1 = (Δt*α*4)/(h*h)
+	v2 = -(Δt*α*1)/(h*h)
+	M = spdiagm(1 => [v2 for i in 1:n-1],0=>[v1 for i in 1:n],-1=>[v2 for i in 1:n-1])
+	C = spdiagm([v2 for i in 1:n])
+	for i in 1:n
+		A[(i-1)*n+1:(i-1)*n+n,(i-1)*n+1:(i-1)*n+n] = M
+	end
+	
+	for i in 1:n-1
+		A[(i-1)*n+1:(i-1)*n+n,n+(i-1)*n+1:n+(i-1)*n+n] = C
+		A[n+(i-1)*n+1:n+(i-1)*n+n,(i-1)*n+1:(i-1)*n+n] = C
+	end
+	return A+I
+end		
 
 # ╔═╡ 5852330e-ddb6-4cef-ac4c-a03531f15061
 function sin_optimizar(m,α,Δt,h,b)
-	A = zeros(m*m,m*m)
-	A = llenar_matriz(A,α,Δt,h)
+	A = matriz_2D(m,α,Δt,h)
 	return A\b
 end
 
 # ╔═╡ 91e0e91d-0d3f-42e5-bfcf-1ee900525f56
 function rala(m,α,Δt,h,b)
-	A = spzeros(m*m,m*m)
-	A = llenar_matriz(A,α,Δt,h)
+	A = matriz_2D_rala(m,α,Δt,h)
 	return A\b
 end
 
 # ╔═╡ 017a9d33-60ad-4f9d-8419-3f2b04832333
 function LU(m,α,Δt,h,b)
-	A = zeros(m*m,m*m)
-	A = llenar_matriz(A,α,Δt,h)
+	A = matriz_2D(m,α,Δt,h)
 	A_LU = lu(A)
 	return A_LU\b
 end
 
 # ╔═╡ 7c08ada1-b1cb-479a-ac71-a4d793c92b10
 function rala_LU(m,α,Δt,h,b)
-	A = spzeros(m*m,m*m)
-	A = llenar_matriz(A,α,Δt,h)
+	A = matriz_2D_rala(m,α,Δt,h)
 	A_LU = lu(A)
 	return A_LU\b
+end
+
+# ╔═╡ 9f038f7f-741f-4f0b-b8f2-b5fa6dcaa83e
+function g_2D(x, y)
+	return 1
 end
 
 # ╔═╡ f9048ea4-2f0e-4f24-b19a-3711c4a0be34
@@ -217,7 +219,10 @@ end
 @benchmark implicito_2D(rala_LU)
 
 # ╔═╡ 8253fd40-6c3e-4fbb-9be0-4e324edd661d
-md""" Vemos que la version COMPLETAR es la mas optima"""
+md""" Vemos que la version rala es la mas eficiente"""
+
+# ╔═╡ 52dfd911-a461-4dbd-884c-e580c387a1b4
+md""" ### Aca es raro que la version mas eficiente no sea la que tiene mas optimizaciones """
 
 # ╔═╡ 2a6ec5d8-5e3a-49b1-a72e-017be09e1523
 function graficar_2D(metodo,α=0.5,r=0.5,m=20,g=g_2D,T=1)
@@ -1847,21 +1852,22 @@ version = "1.4.1+1"
 # ╟─cca3662f-b95c-4cc4-935b-de0021c4c373
 # ╟─82f797b1-7f22-4383-9946-f8f49ec81d03
 # ╟─7c2d9c90-a983-45bb-945a-1d49c5904d3c
-# ╟─7bcbb51f-cdd6-48f6-b340-16ad7ab4e3b3
-# ╟─20e5af22-5ea6-4df0-801b-df60d6ef5cf8
-# ╠═d35f8367-3a63-42f9-97b9-dfc81be2be45
+# ╟─ce8449cd-9c81-43c5-bbc0-ed9e1dcbeb87
+# ╟─d114a579-1f1e-4da2-b7fe-ce87a6bca1cc
 # ╟─5852330e-ddb6-4cef-ac4c-a03531f15061
 # ╟─91e0e91d-0d3f-42e5-bfcf-1ee900525f56
 # ╟─017a9d33-60ad-4f9d-8419-3f2b04832333
 # ╟─7c08ada1-b1cb-479a-ac71-a4d793c92b10
+# ╟─9f038f7f-741f-4f0b-b8f2-b5fa6dcaa83e
 # ╟─f9048ea4-2f0e-4f24-b19a-3711c4a0be34
 # ╠═ed9707a7-a1fc-4cd2-9d48-2b07dbde15e5
 # ╠═095c3bf3-67ff-496f-8725-05ac8543fe92
 # ╠═16e461b7-83c5-49eb-968f-4c7cfc8b1d9e
 # ╠═813c44e5-eb72-455c-bf79-5c4adc9de8c7
 # ╟─8253fd40-6c3e-4fbb-9be0-4e324edd661d
+# ╟─52dfd911-a461-4dbd-884c-e580c387a1b4
 # ╟─2a6ec5d8-5e3a-49b1-a72e-017be09e1523
-# ╟─bb95d8ba-6510-442e-b9e3-239825770773
+# ╠═bb95d8ba-6510-442e-b9e3-239825770773
 # ╟─98e41308-d483-41cc-94f2-2806f5ed8f51
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
