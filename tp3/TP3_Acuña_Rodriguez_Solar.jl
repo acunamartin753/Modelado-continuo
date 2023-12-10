@@ -8,7 +8,7 @@ using InteractiveUtils
 using Plots, LinearAlgebra, LinearSolve, BenchmarkTools, SparseArrays
 
 # ╔═╡ ccccfa81-2d50-4d72-ba31-fde564c6e60b
-md""" # Ecuacion de calor en una dimension """
+md""" # Difusion en una dimension """
 
 # ╔═╡ 49091cbf-d81d-40e3-b1e6-7f1c2a0d1295
 function g_1D(x)
@@ -16,7 +16,7 @@ function g_1D(x)
 end
 
 # ╔═╡ e5f9a938-7a32-448e-901b-68e8843d315f
-function explicito_1D(m,α,r,g,contorno=[0,0], X=1, T=1)
+function explicito_1D(α,r,m,g,contorno=[0,0], X=1, T=1) 
 	h = X/m
 	Δt = r * h * h / α
 	n = Int(ceil(T/Δt))
@@ -43,7 +43,7 @@ function matriz_1D(m,α)
 end
 
 # ╔═╡ f7f21345-d7e7-4ebc-aeca-f306ce1e890b
-function implicito_1D(m,α,r,g,contorno=[0,0],X=1,T=1)
+function implicito_1D(α,r,m,g,contorno=[0,0],X=1,T=1)
 	h = X/m
 	Δt = r * h * h / α
 	n = Int(ceil(T/Δt))
@@ -65,29 +65,51 @@ function implicito_1D(m,α,r,g,contorno=[0,0],X=1,T=1)
 end
 
 # ╔═╡ eee66eed-77f8-48d9-9085-bed978700dc9
-function graficar_1D(metodo, m=100,α=0.1,r=0.5, g=g_1D,contorno=[0,0],X=1,T=1)
-	u = metodo(m,α,r,g)
-	h = 1/m
-	xs=(0:m-1)*h
-	ymin = min(u...)
-	ymax = max(u...)
-	@gif for i in 1:m
-		ee = 3
-		plot(xs,u[i*m,:], xlims = (0,1), ylims = (ymin,ymax),xlabel="Posición", ylabel="Temperatura")
+function graficar_1D(metodo,α=0.5,r=0.5, m=100, g=g_1D,contorno=[0,0],X=1,T=1)
+	u = metodo(α,r,m,g)
+	h = X/m
+	n=size(u)[1]
+	Ω =(0:m-1)*h
+	u_min = min(u...)
+	u_max = max(u...)
+	
+	@gif for i in 1:100
+		plot(Ω,u[min(i*100,n),:], title = string("Metodo ",metodo," α=",α," r=",r), xlims = (0,1), ylims = (u_min,u_max), ylabel="Temperatura", legend= false)
 	end
 end
 
+# ╔═╡ 4cd3a6cb-7421-46e7-9d13-4c98c7ccafcb
+graficar_1D(explicito_1D,0.5,0.5)
+
+# ╔═╡ d629b7b3-21b9-4e5d-88fb-bff20b10a732
+md""" Funciona bien con estos parametros"""
+
+# ╔═╡ 504b1af4-f66c-4f54-8868-f00dcc6003aa
+graficar_1D(explicito_1D,0.7,0.3)
+
+# ╔═╡ 0e26fff0-d74a-4773-a0ff-2630af94bdcf
+md""" Podemos ver que el metodo explicito es inestable, si variamos los parametros nos da resultados indeseados"""
+
 # ╔═╡ e11af7bc-1558-446a-932a-9dab0609e5d5
-graficar_1D(implicito_1D,100,0.5)
+graficar_1D(implicito_1D,0.5,0.5)
 
 # ╔═╡ 0782a995-cce2-4a5b-8fab-e0c0813dd625
-graficar_1D(explicito_1D,100,0.5,0.1,g_1D)
+graficar_1D(implicito_1D,0.7,0.3)
+
+# ╔═╡ 892aeeed-1626-4735-af2e-efe7fcd985ed
+graficar_1D(implicito_1D,1,0.7)
+
+# ╔═╡ 76e75f79-49ae-4160-8e97-9e4fb28f7dab
+md""" El metodo implicito es mas estable y nos da mas rango para variar los parametros """
+
+# ╔═╡ cca3662f-b95c-4cc4-935b-de0021c4c373
+md""" Mientras mas grande es el parametro α, mas rapida es la difusion"""
 
 # ╔═╡ 82f797b1-7f22-4383-9946-f8f49ec81d03
 md""" # Ecuacion del calor en dos dimensiones """
 
 # ╔═╡ 7c2d9c90-a983-45bb-945a-1d49c5904d3c
-function pos(i,j,m)
+function pos_vector(i,j,m)
 	return (i-1)*m+j
 end
 
@@ -98,7 +120,7 @@ end
 
 # ╔═╡ 20e5af22-5ea6-4df0-801b-df60d6ef5cf8
 function g_2D(x, y)
-	return 10
+	return 1
 end
 
 # ╔═╡ d35f8367-3a63-42f9-97b9-dfc81be2be45
@@ -107,20 +129,22 @@ function llenar_matriz(A,α,Δt,h)
 	dx = [0,1,0,-1]
 	dy = [1,0,-1,0]
 
+
 	for i in 1:n
 		for j in 1:n
-			k = pos(i,j,n) 
+			k = pos_vector(i,j,n) 
 			A[k,k] = (Δt*α*4)/(h*h)
 			for q in 1:4
 				ii = i+dx[q]
 				jj = j+dy[q]
 				if pos_valida(ii,jj,n) 
-					p = pos(ii,jj,n) 
+					p = pos_vector(ii,jj,n) 
 					A[k,p] = -(Δt*α*1)/(h*h)
 				end
 			end
 		end
 	end
+	
 	return A+I
 end				
 
@@ -155,11 +179,11 @@ function rala_LU(m,α,Δt,h,b)
 end
 
 # ╔═╡ f9048ea4-2f0e-4f24-b19a-3711c4a0be34
-function implicito_2D(metodo,g, m,  T, α, r) 
+function implicito_2D(metodo,α=0.5,r=0.5,m=20,g=g_2D,T=1)
 	h = T/m	
 	Δt = r * h * h / α 
-	nt = Int(ceil(T/Δt))
-	u = zeros(nt, m, m)
+	n = Int(ceil(T/Δt))
+	u = zeros(n, m, m)
 
 	for i in 1:m
 		for j in 1:m
@@ -167,67 +191,56 @@ function implicito_2D(metodo,g, m,  T, α, r)
 		end
 	end
 	
-	u = reshape(u, nt, m*m)
-	
-	for t in 2:nt
+	u = reshape(u, n, m*m)
+	for t in 2:n
 		u[t,:] = metodo(m,α,Δt,h,u[t-1,:])
 		for i in 1:m 
-			u[t,pos(i,1,m)] = 0
-			u[t,pos(i,m,m)] = 0
-			u[t,pos(1,i,m)] = 0
-			u[t,pos(m,i,m)] = 0
+			u[t,pos_vector(i,1,m)] = 0
+			u[t,pos_vector(i,m,m)] = 0
+			u[t,pos_vector(1,i,m)] = 0
+			u[t,pos_vector(m,i,m)] = 0
 		end
 	end
 	return u
 end
 
-# ╔═╡ 0269428b-9bde-46d1-81ab-43e712919cc7
-Dim = 20
-
 # ╔═╡ ed9707a7-a1fc-4cd2-9d48-2b07dbde15e5
-@benchmark implicito_2D(sin_optimizar, g_2D, Dim, 1, 0.1, 0.5)
+@benchmark implicito_2D(sin_optimizar)
 
 # ╔═╡ 095c3bf3-67ff-496f-8725-05ac8543fe92
-@benchmark implicito_2D(rala, g_2D, Dim, 1, 0.1, 0.5)
+@benchmark implicito_2D(rala)
 
 # ╔═╡ 16e461b7-83c5-49eb-968f-4c7cfc8b1d9e
-@benchmark implicito_2D(LU, g_2D, Dim, 1, 0.1, 0.5)
+@benchmark implicito_2D(LU)
 
 # ╔═╡ 813c44e5-eb72-455c-bf79-5c4adc9de8c7
-@benchmark implicito_2D(rala_LU, g_2D, Dim, 1, 0.1, 0.5)
+@benchmark implicito_2D(rala_LU)
+
+# ╔═╡ 8253fd40-6c3e-4fbb-9be0-4e324edd661d
+md""" Vemos que la version COMPLETAR es la mas optima"""
 
 # ╔═╡ 2a6ec5d8-5e3a-49b1-a72e-017be09e1523
-function Animar2D(metodo,g, m,  T, α, r)
-	sim = implicito_2D(metodo,g, m,  T, α, r)
-
+function graficar_2D(metodo,α=0.5,r=0.5,m=20,g=g_2D,T=1)
+	u = implicito_2D(metodo,α,r,m,g,T)
 	h = 1/(m-1)
 	Δt = r*h*h/α
-	nt = Int(ceil(T/Δt))
-	xs = (0:(m-1))*h
-	ts = (0:(nt-1))*Δt
-	
-	cmin = min(sim...)
-	cmax = max(sim...)
+	n = Int(ceil(T/Δt))
+	Ω = (0:(m-1))*h
+	N = (0:(n-1))*Δt
+	u_min = min(u...)
+	u_max = max(u...)
 
-	@gif for i in 1:min(length(ts),200)
-		mat = zeros(m,m)
-		for a in 1:m
-			for b in 1:m
-				mat[a,b] = sim[i,pos(a,b,m)]
-			end
-		end
-		heatmap(xs,xs,mat, clim = (cmin,cmax))
+	@gif for i in 1:200
+		U = reshape(u[min(i,length(N)),:],m,m)
+		surface(Ω,Ω,U, zlims=(u_min,u_max), zlabel="Temperatura", title=string("metodo ",metodo," α=",α, " r=", r), clims=(0,1))
 	end
 end
 
 # ╔═╡ bb95d8ba-6510-442e-b9e3-239825770773
-Animar2D(rala_LU,g_2D, Dim, 1, 1, 0.5)
+graficar_2D(rala)
 
 # ╔═╡ 98e41308-d483-41cc-94f2-2806f5ed8f51
 md""" # Difusion con transporte """
-
-# ╔═╡ a3fed351-82f9-4691-aef1-555d28f08e05
-
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1816,33 +1829,39 @@ version = "1.4.1+1"
 """
 
 # ╔═╡ Cell order:
-# ╠═5f30e23f-e68c-4544-9ab2-382410870da0
+# ╟─5f30e23f-e68c-4544-9ab2-382410870da0
 # ╟─ccccfa81-2d50-4d72-ba31-fde564c6e60b
 # ╟─49091cbf-d81d-40e3-b1e6-7f1c2a0d1295
-# ╠═e5f9a938-7a32-448e-901b-68e8843d315f
+# ╟─e5f9a938-7a32-448e-901b-68e8843d315f
 # ╟─da682cab-9bfd-4727-bc51-c4c6b3b8664c
 # ╟─f7f21345-d7e7-4ebc-aeca-f306ce1e890b
-# ╠═eee66eed-77f8-48d9-9085-bed978700dc9
-# ╠═e11af7bc-1558-446a-932a-9dab0609e5d5
-# ╠═0782a995-cce2-4a5b-8fab-e0c0813dd625
+# ╟─eee66eed-77f8-48d9-9085-bed978700dc9
+# ╟─4cd3a6cb-7421-46e7-9d13-4c98c7ccafcb
+# ╟─d629b7b3-21b9-4e5d-88fb-bff20b10a732
+# ╟─504b1af4-f66c-4f54-8868-f00dcc6003aa
+# ╟─0e26fff0-d74a-4773-a0ff-2630af94bdcf
+# ╟─e11af7bc-1558-446a-932a-9dab0609e5d5
+# ╟─0782a995-cce2-4a5b-8fab-e0c0813dd625
+# ╟─892aeeed-1626-4735-af2e-efe7fcd985ed
+# ╟─76e75f79-49ae-4160-8e97-9e4fb28f7dab
+# ╟─cca3662f-b95c-4cc4-935b-de0021c4c373
 # ╟─82f797b1-7f22-4383-9946-f8f49ec81d03
-# ╠═7c2d9c90-a983-45bb-945a-1d49c5904d3c
-# ╠═7bcbb51f-cdd6-48f6-b340-16ad7ab4e3b3
-# ╠═20e5af22-5ea6-4df0-801b-df60d6ef5cf8
+# ╟─7c2d9c90-a983-45bb-945a-1d49c5904d3c
+# ╟─7bcbb51f-cdd6-48f6-b340-16ad7ab4e3b3
+# ╟─20e5af22-5ea6-4df0-801b-df60d6ef5cf8
 # ╠═d35f8367-3a63-42f9-97b9-dfc81be2be45
 # ╟─5852330e-ddb6-4cef-ac4c-a03531f15061
 # ╟─91e0e91d-0d3f-42e5-bfcf-1ee900525f56
 # ╟─017a9d33-60ad-4f9d-8419-3f2b04832333
 # ╟─7c08ada1-b1cb-479a-ac71-a4d793c92b10
-# ╠═f9048ea4-2f0e-4f24-b19a-3711c4a0be34
-# ╟─0269428b-9bde-46d1-81ab-43e712919cc7
+# ╟─f9048ea4-2f0e-4f24-b19a-3711c4a0be34
 # ╠═ed9707a7-a1fc-4cd2-9d48-2b07dbde15e5
 # ╠═095c3bf3-67ff-496f-8725-05ac8543fe92
 # ╠═16e461b7-83c5-49eb-968f-4c7cfc8b1d9e
 # ╠═813c44e5-eb72-455c-bf79-5c4adc9de8c7
-# ╠═2a6ec5d8-5e3a-49b1-a72e-017be09e1523
-# ╠═bb95d8ba-6510-442e-b9e3-239825770773
+# ╟─8253fd40-6c3e-4fbb-9be0-4e324edd661d
+# ╟─2a6ec5d8-5e3a-49b1-a72e-017be09e1523
+# ╟─bb95d8ba-6510-442e-b9e3-239825770773
 # ╟─98e41308-d483-41cc-94f2-2806f5ed8f51
-# ╠═a3fed351-82f9-4691-aef1-555d28f08e05
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
