@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.27
+# v0.19.29
 
 using Markdown
 using InteractiveUtils
@@ -79,25 +79,25 @@ function graficar_1D(metodo,α=0.5,r=0.5, m=100, g=g_1D,contorno=[0,0],X=1,T=1)
 end
 
 # ╔═╡ 4cd3a6cb-7421-46e7-9d13-4c98c7ccafcb
-graficar_1D(explicito_1D,0.5,0.5)
+#graficar_1D(explicito_1D,0.5,0.5)
 
 # ╔═╡ d629b7b3-21b9-4e5d-88fb-bff20b10a732
 md""" Funciona bien con estos parametros"""
 
 # ╔═╡ 504b1af4-f66c-4f54-8868-f00dcc6003aa
-graficar_1D(explicito_1D,0.7,0.3)
+#graficar_1D(explicito_1D,0.7,0.3)
 
 # ╔═╡ 0e26fff0-d74a-4773-a0ff-2630af94bdcf
 md""" Podemos ver que el metodo explicito es inestable, si variamos los parametros nos da resultados indeseados"""
 
 # ╔═╡ e11af7bc-1558-446a-932a-9dab0609e5d5
-graficar_1D(implicito_1D,0.5,0.5)
+#graficar_1D(implicito_1D,0.5,0.5)
 
 # ╔═╡ 0782a995-cce2-4a5b-8fab-e0c0813dd625
-graficar_1D(implicito_1D,0.7,0.3)
+#graficar_1D(implicito_1D,0.7,0.3)
 
 # ╔═╡ 892aeeed-1626-4735-af2e-efe7fcd985ed
-graficar_1D(implicito_1D,1,0.7)
+#graficar_1D(implicito_1D,1,0.7)
 
 # ╔═╡ 76e75f79-49ae-4160-8e97-9e4fb28f7dab
 md""" El metodo implicito es mas estable y nos da mas rango para variar los parametros """
@@ -116,7 +116,7 @@ end
 # ╔═╡ ce8449cd-9c81-43c5-bbc0-ed9e1dcbeb87
 function matriz_2D(n,α,Δt,h)
 	A = zeros(n*n,n*n)
-	v1 = (Δt*α*4)/(h*h)
+	v1 = (Δt*α*4)/(h*h)+1
 	v2 = -(Δt*α*1)/(h*h)
 	M = diagm(1 => [v2 for i in 1:n-1],0=>[v1 for i in 1:n],-1=>[v2 for i in 1:n-1])
 	C = diagm([v2 for i in 1:n])
@@ -128,13 +128,13 @@ function matriz_2D(n,α,Δt,h)
 		A[n+(i-1)*n+1:n+(i-1)*n+n,(i-1)*n+1:(i-1)*n+n] = C
 	end
 	
-	return A+I
+	return A
 end		
 
 # ╔═╡ d114a579-1f1e-4da2-b7fe-ce87a6bca1cc
 function matriz_2D_rala(n,α,Δt,h)
 	A = spzeros(n*n,n*n)
-	v1 = (Δt*α*4)/(h*h)
+	v1 = (Δt*α*4)/(h*h)+1
 	v2 = -(Δt*α*1)/(h*h)
 	M = spdiagm(1 => [v2 for i in 1:n-1],0=>[v1 for i in 1:n],-1=>[v2 for i in 1:n-1])
 	C = spdiagm([v2 for i in 1:n])
@@ -146,7 +146,7 @@ function matriz_2D_rala(n,α,Δt,h)
 		A[(i-1)*n+1:(i-1)*n+n,n+(i-1)*n+1:n+(i-1)*n+n] = C
 		A[n+(i-1)*n+1:n+(i-1)*n+n,(i-1)*n+1:(i-1)*n+n] = C
 	end
-	return A+I
+	return A
 end		
 
 # ╔═╡ 5852330e-ddb6-4cef-ac4c-a03531f15061
@@ -207,36 +207,30 @@ function implicito_2D(metodo,α=0.5,r=0.5,m=20,g=g_2D,T=1)
 end
 
 # ╔═╡ ed9707a7-a1fc-4cd2-9d48-2b07dbde15e5
-@benchmark implicito_2D(sin_optimizar)
+#@benchmark implicito_2D(sin_optimizar)
 
 # ╔═╡ 095c3bf3-67ff-496f-8725-05ac8543fe92
-@benchmark implicito_2D(rala)
+#@benchmark implicito_2D(rala)
 
 # ╔═╡ 16e461b7-83c5-49eb-968f-4c7cfc8b1d9e
-@benchmark implicito_2D(LU)
+#@benchmark implicito_2D(LU)
 
 # ╔═╡ 813c44e5-eb72-455c-bf79-5c4adc9de8c7
-@benchmark implicito_2D(rala_LU)
+#@benchmark implicito_2D(rala_LU) 
 
 # ╔═╡ 8253fd40-6c3e-4fbb-9be0-4e324edd661d
 md""" Vemos que la version rala es la mas eficiente"""
-
-# ╔═╡ 52dfd911-a461-4dbd-884c-e580c387a1b4
-md""" ### Aca es raro que la version mas eficiente no sea la que tiene mas optimizaciones """
 
 # ╔═╡ 2a6ec5d8-5e3a-49b1-a72e-017be09e1523
 function graficar_2D(metodo,α=0.5,r=0.5,m=20,g=g_2D,T=1)
 	u = implicito_2D(metodo,α,r,m,g,T)
 	h = 1/(m-1)
-	Δt = r*h*h/α
-	n = Int(ceil(T/Δt))
 	Ω = (0:(m-1))*h
-	N = (0:(n-1))*Δt
 	u_min = min(u...)
 	u_max = max(u...)
-
+	N = size(u)[1]
 	@gif for i in 1:200
-		U = reshape(u[min(i,length(N)),:],m,m)
+		U = reshape(u[min(i,N),:],m,m)
 		surface(Ω,Ω,U, zlims=(u_min,u_max), zlabel="Temperatura", title=string("metodo ",metodo," α=",α, " r=", r), clims=(0,1))
 	end
 end
@@ -244,8 +238,87 @@ end
 # ╔═╡ bb95d8ba-6510-442e-b9e3-239825770773
 graficar_2D(rala)
 
-# ╔═╡ 98e41308-d483-41cc-94f2-2806f5ed8f51
-md""" # Difusion con transporte """
+# ╔═╡ 806dde77-2188-4319-9162-fa126b93f240
+md""" ### Difusion con transporte """
+
+# ╔═╡ 5a2ad20e-e212-4625-94f1-d62ab3a04ecd
+function bola(x,y)
+	r = sqrt((x-0.5)^2+(y-0.5)^2)
+	if r <= 1/4
+		return 1
+	else
+		return 0
+	end
+end
+
+# ╔═╡ 08f33468-897f-4673-8acc-9aa726b19e30
+function matriz_transporte(m,α,β,Δt,h,r)
+    s = β*Δt/(2*h)
+	val_1 = 4*(Δt*α)/(h*h)+1
+	val_2 = -(Δt*α*1)/(h*h)
+
+    D = [val_1 for i in 1:((m+1)*(m+2))]
+	D_i = [val_2+s for i in 1:((m+1)*(m+2)-1)]
+	D_d = [val_2-s for i in 1:((m+1)*(m+2)-1)]
+	for i in (m+1):(m+1):((m+1)*(m+1))
+		D_i[i] = 0
+		D_d[i] = 0
+    end
+	D_2 = [val_2 for i in 1:((m+1)*m)]
+	D_3 = [2*val_2 for i in 1:m+1]
+	
+	A = diagm(-m-1 => vcat(D_2,D_3), -1 => D_i, 0 => D, 1 => D_d, m+1 => vcat(D_3,D_2))
+
+    for i in 1:(m+1):((m+1)*(m+2))
+		A[m+i,i] = val_2-s
+        A[i,m+i] = val_2+s
+    end
+    return A
+end
+
+# ╔═╡ 3516b29d-c6a7-45c4-9aa4-de5ab5e35a64
+function difusion_transporte(α,r,β,m,g, T)
+	h = 1/m
+	Δt = r*h*h/α 
+	n = Int(ceil(T/Δt))
+	u = zeros(n, m+1, m+2)
+	
+    for i in 1:m+1
+        for j in 1:m+2
+            u[1,i,j] = g(h*i-h,h*j-h)
+        end
+    end
+
+    A = matriz_transporte(m, α, β, Δt, h,r)###
+    for t in 2:n
+		b=reshape(u[t-1,:, :],(m+1)*(m+2))
+		U = A\b
+        u[t,:, :] = reshape(U, m+1, m+2)
+
+	end
+	
+    return u
+end
+
+# ╔═╡ ffcc22e4-7415-4b08-844a-d78ced6a0eb6
+function graficar_transporte(α=0.2,r=0.5,β=2,m=20,g=bola,Tf=1) 
+	u = difusion_transporte(α,r,β,m,g,Tf)
+	u_min = min(u...)
+	u_max = max(u...)
+	h1 = 1/(m+1)
+	h2 = 1/(m)
+	Ω1 = (0:(m+1))*h1
+	Ω2 = (0:m)*h2
+	N = size(u)[1]
+	
+    @gif for i in 1:200
+        U = u[min(i,N), :, :]
+		surface(Ω1,Ω2,U, zlims=(u_min,u_max), clims = (u_min,u_max),zlabel="Temperatura", title=string("α=",α," β=",β))
+    end
+end
+
+# ╔═╡ 50e889f5-8ca9-474e-9286-707ec774be9d
+graficar_transporte()
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -255,20 +328,15 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 LinearSolve = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-
-[compat]
-BenchmarkTools = "~1.4.0"
-LinearSolve = "~2.20.1"
-Plots = "~1.39.0"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.9.2"
+julia_version = "1.9.3"
 manifest_format = "2.0"
-project_hash = "3b594a39bb81e0749dea5c2dab0aca50bb0aa7b1"
+project_hash = "d3c98f04ca0340c675c3616abcae2b0067934d5d"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "332e5d7baeff8497b923b730b994fa480601efc7"
@@ -340,9 +408,9 @@ uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[deps.BenchmarkTools]]
 deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
-git-tree-sha1 = "f1f03a9fa24271160ed7e73051fba3c1a759b53f"
+git-tree-sha1 = "d9a9701b899b30332bbcb3e1679c41cce81fb0e8"
 uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-version = "1.4.0"
+version = "1.3.2"
 
 [[deps.BitFlags]]
 git-tree-sha1 = "2dc09997850d68179b69dafb58ae806167a32b1b"
@@ -526,6 +594,12 @@ git-tree-sha1 = "bdb1942cd4c45e3c678fd11569d5cccd80976237"
 uuid = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
 version = "1.0.4"
 
+[[deps.EnzymeCore]]
+deps = ["Adapt"]
+git-tree-sha1 = "2efe862de93cd87f620ad6ac9c9e3f83f1b2841b"
+uuid = "f151be2c-9106-41f4-ab19-57ee4f262869"
+version = "0.6.4"
+
 [[deps.EpollShim_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "8e9441ee83492030ace98f9789a654a6d0b1f643"
@@ -572,9 +646,9 @@ uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
 [[deps.FillArrays]]
 deps = ["LinearAlgebra", "Random"]
-git-tree-sha1 = "25a10f2b86118664293062705fd9c7e2eda881a2"
+git-tree-sha1 = "28e4e9c4b7b162398ec8004bdabe9a90c78c122d"
 uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
-version = "1.9.2"
+version = "1.8.0"
 
     [deps.FillArrays.extensions]
     FillArraysPDMatsExt = "PDMats"
@@ -707,10 +781,10 @@ uuid = "18e54dd8-cb9d-406c-a71d-865a43cbb235"
 version = "0.1.2"
 
 [[deps.IntelOpenMP_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "31d6adb719886d4e32e38197aae466e98881320b"
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
+git-tree-sha1 = "ad37c091f7d7daf900963171600d7c1c5c3ede32"
 uuid = "1d5cc7b8-4909-519e-a0f8-d0f5ad9712d0"
-version = "2024.0.0+0"
+version = "2023.2.0+0"
 
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
@@ -752,9 +826,9 @@ version = "0.21.4"
 
 [[deps.JpegTurbo_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "60b1194df0a3298f460063de985eae7b01bc011a"
+git-tree-sha1 = "6f2675ef130a300a112286de91973805fcc5ffbc"
 uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
-version = "3.0.1+0"
+version = "2.1.91+0"
 
 [[deps.KLU]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse_jll"]
@@ -764,9 +838,9 @@ version = "0.4.1"
 
 [[deps.Krylov]]
 deps = ["LinearAlgebra", "Printf", "SparseArrays"]
-git-tree-sha1 = "8a6837ec02fe5fb3def1abc907bb802ef11a0729"
+git-tree-sha1 = "17e462054b42dcdda73e9a9ba0c67754170c88ae"
 uuid = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
-version = "0.9.5"
+version = "0.9.4"
 
 [[deps.LAME_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -908,16 +982,16 @@ deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[deps.LinearSolve]]
-deps = ["ArrayInterface", "ConcreteStructs", "DocStringExtensions", "EnumX", "FastLapackInterface", "GPUArraysCore", "InteractiveUtils", "KLU", "Krylov", "Libdl", "LinearAlgebra", "MKL_jll", "PrecompileTools", "Preferences", "RecursiveFactorization", "Reexport", "Requires", "SciMLBase", "SciMLOperators", "Setfield", "SparseArrays", "Sparspak", "StaticArraysCore", "UnPack"]
-git-tree-sha1 = "8d8633bb983a811bbb4475f3bd179186e58eebb7"
+deps = ["ArrayInterface", "ConcreteStructs", "DocStringExtensions", "EnumX", "EnzymeCore", "FastLapackInterface", "GPUArraysCore", "InteractiveUtils", "KLU", "Krylov", "Libdl", "LinearAlgebra", "MKL_jll", "PrecompileTools", "Preferences", "RecursiveFactorization", "Reexport", "Requires", "SciMLBase", "SciMLOperators", "Setfield", "SparseArrays", "Sparspak", "UnPack"]
+git-tree-sha1 = "051943b8b8e81c548e9d099d6eb3d3ed23093c35"
 uuid = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"
-version = "2.20.1"
+version = "2.20.0"
 
     [deps.LinearSolve.extensions]
     LinearSolveBandedMatricesExt = "BandedMatrices"
     LinearSolveBlockDiagonalsExt = "BlockDiagonals"
     LinearSolveCUDAExt = "CUDA"
-    LinearSolveEnzymeExt = ["Enzyme", "EnzymeCore"]
+    LinearSolveEnzymeExt = "Enzyme"
     LinearSolveFastAlmostBandedMatricesExt = ["FastAlmostBandedMatrices"]
     LinearSolveHYPREExt = "HYPRE"
     LinearSolveIterativeSolversExt = "IterativeSolvers"
@@ -932,7 +1006,6 @@ version = "2.20.1"
     BlockDiagonals = "0a1fb500-61f7-11e9-3c65-f5ef3456f9f0"
     CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
     Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
-    EnzymeCore = "f151be2c-9106-41f4-ab19-57ee4f262869"
     FastAlmostBandedMatrices = "9d29842c-ecb8-4973-b1e9-a27b1157504e"
     HYPRE = "b5ffcf37-a2bd-41ab-a3da-4bd9bc8ad771"
     IterativeSolvers = "42fd0dbc-a981-5370-80f2-aaf504508153"
@@ -983,10 +1056,10 @@ version = "0.12.166"
     SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [[deps.MKL_jll]]
-deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl"]
-git-tree-sha1 = "72dc3cf284559eb8f53aa593fe62cb33f83ed0c0"
+deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "Pkg"]
+git-tree-sha1 = "eb006abbd7041c28e0d16260e50a24f8f9104913"
 uuid = "856f044c-d86e-5d09-b602-aeab76dc8ba7"
-version = "2024.0.0+0"
+version = "2023.2.0+0"
 
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
@@ -1562,9 +1635,9 @@ version = "1.25.0+0"
 
 [[deps.XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Zlib_jll"]
-git-tree-sha1 = "801cbe47eae69adc50f36c3caec4758d2650741b"
+git-tree-sha1 = "da69178aacc095066bad1f69d2f59a60a1dd8ad1"
 uuid = "02c8fc9c-b97f-50b9-bbe4-9be30ff0a78a"
-version = "2.12.2+0"
+version = "2.12.0+0"
 
 [[deps.XSLT_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Libgpg_error_jll", "Libiconv_jll", "Pkg", "XML2_jll", "Zlib_jll"]
@@ -1787,10 +1860,10 @@ uuid = "36db933b-70db-51c0-b978-0f229ee0e533"
 version = "1.18.0+0"
 
 [[deps.libpng_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Zlib_jll"]
-git-tree-sha1 = "93284c28274d9e75218a416c65ec49d0e0fcdf3d"
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Zlib_jll"]
+git-tree-sha1 = "94d180a6d2b5e55e447e2d27a29ed04fe79eb30c"
 uuid = "b53b4c65-9356-5827-b1ea-8c7a1a84506f"
-version = "1.6.40+0"
+version = "1.6.38+0"
 
 [[deps.libvorbis_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Ogg_jll", "Pkg"]
@@ -1834,20 +1907,20 @@ version = "1.4.1+1"
 """
 
 # ╔═╡ Cell order:
-# ╟─5f30e23f-e68c-4544-9ab2-382410870da0
+# ╠═5f30e23f-e68c-4544-9ab2-382410870da0
 # ╟─ccccfa81-2d50-4d72-ba31-fde564c6e60b
 # ╟─49091cbf-d81d-40e3-b1e6-7f1c2a0d1295
 # ╟─e5f9a938-7a32-448e-901b-68e8843d315f
 # ╟─da682cab-9bfd-4727-bc51-c4c6b3b8664c
 # ╟─f7f21345-d7e7-4ebc-aeca-f306ce1e890b
 # ╟─eee66eed-77f8-48d9-9085-bed978700dc9
-# ╟─4cd3a6cb-7421-46e7-9d13-4c98c7ccafcb
+# ╠═4cd3a6cb-7421-46e7-9d13-4c98c7ccafcb
 # ╟─d629b7b3-21b9-4e5d-88fb-bff20b10a732
-# ╟─504b1af4-f66c-4f54-8868-f00dcc6003aa
+# ╠═504b1af4-f66c-4f54-8868-f00dcc6003aa
 # ╟─0e26fff0-d74a-4773-a0ff-2630af94bdcf
-# ╟─e11af7bc-1558-446a-932a-9dab0609e5d5
-# ╟─0782a995-cce2-4a5b-8fab-e0c0813dd625
-# ╟─892aeeed-1626-4735-af2e-efe7fcd985ed
+# ╠═e11af7bc-1558-446a-932a-9dab0609e5d5
+# ╠═0782a995-cce2-4a5b-8fab-e0c0813dd625
+# ╠═892aeeed-1626-4735-af2e-efe7fcd985ed
 # ╟─76e75f79-49ae-4160-8e97-9e4fb28f7dab
 # ╟─cca3662f-b95c-4cc4-935b-de0021c4c373
 # ╟─82f797b1-7f22-4383-9946-f8f49ec81d03
@@ -1865,9 +1938,13 @@ version = "1.4.1+1"
 # ╠═16e461b7-83c5-49eb-968f-4c7cfc8b1d9e
 # ╠═813c44e5-eb72-455c-bf79-5c4adc9de8c7
 # ╟─8253fd40-6c3e-4fbb-9be0-4e324edd661d
-# ╟─52dfd911-a461-4dbd-884c-e580c387a1b4
 # ╟─2a6ec5d8-5e3a-49b1-a72e-017be09e1523
 # ╠═bb95d8ba-6510-442e-b9e3-239825770773
-# ╟─98e41308-d483-41cc-94f2-2806f5ed8f51
+# ╟─806dde77-2188-4319-9162-fa126b93f240
+# ╟─5a2ad20e-e212-4625-94f1-d62ab3a04ecd
+# ╠═08f33468-897f-4673-8acc-9aa726b19e30
+# ╟─3516b29d-c6a7-45c4-9aa4-de5ab5e35a64
+# ╟─ffcc22e4-7415-4b08-844a-d78ced6a0eb6
+# ╠═50e889f5-8ca9-474e-9286-707ec774be9d
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
