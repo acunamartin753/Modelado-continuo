@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.29
+# v0.19.27
 
 using Markdown
 using InteractiveUtils
@@ -12,25 +12,23 @@ md""" # Difusion en una dimension """
 
 # ╔═╡ 49091cbf-d81d-40e3-b1e6-7f1c2a0d1295
 function g_1D(x)
-	return 1 
+	return sin(x*2π)
 end
 
 # ╔═╡ e5f9a938-7a32-448e-901b-68e8843d315f
-function explicito_1D(α,r,m,g,contorno=[0,0], X=1, Tf=1) 
-	h = X/m
+function explicito_1D(α=0.5,r=0.5,N=100,g=g_1D,Tf=1) 
+	h = 1/N
 	Δt = r * h * h / α
-	n = Int(ceil(Tf/Δt))
+	T = Int(ceil(Tf/Δt))
 	
-	u = zeros(n,m)
-	for j in 2:m-1
-		u[1,j] = g(j*h)
+	u = zeros(N,T)
+	for x in 1:N
+		u[x,1] = g(x*h)
 	end
 	
-	for i in 2:n
-		for j in 2:m-1
-        	u[i,j] = u[i-1,j]+α*((u[i-1,j+1]-2*u[i-1,j]+u[i-1, j-1])/h*h)
-			u[i,1]=contorno[1]
-			u[i,m]=contorno[2]
+	for t in 2:T
+		for x in 2:N-1
+        	u[x,t] = u[x,t-1]+α*((u[x+1,t-1]-2*u[x,t-1]+u[x-1,t-1])/h*h)
 		end
 	end
 	
@@ -38,66 +36,63 @@ function explicito_1D(α,r,m,g,contorno=[0,0], X=1, Tf=1)
 end
 
 # ╔═╡ da682cab-9bfd-4727-bc51-c4c6b3b8664c
-function matriz_1D(m,α)
-	return Tridiagonal(fill(-1*α,m-1),fill(2*α+1,m),fill(-1*α,m-1))
+function matriz_1D(N,α)
+	return Tridiagonal(fill(-1*α,N-3),fill(2*α+1,N-2),fill(-1*α,N-3))
 end
 
 # ╔═╡ f7f21345-d7e7-4ebc-aeca-f306ce1e890b
-function implicito_1D(α,r,m,g,contorno=[0,0],X=1,Tf=1)
-	h = X/m
-	Δt = r * h * h / α
-	n = Int(ceil(Tf/Δt))
-	u = zeros(n,m)
+function implicito_1D(α=0.5,r=0.5,N=100,g=g_1D,Tf=1)
+	h = 1/N
+	Δt = r*h*h/α
+	T = Int(ceil(Tf/Δt))
+	u = zeros(N,T)
 	
-	for j in 2:m-1
-		u[1,j] = g(j*h)
+	for x in 1:N
+		u[x,1] = g(x*h)
 	end
 	
-	A = matriz_1D(m,α)
-	for i in 2:n
-		u[i,1:m] = A\u[i-1,1:m]
-		
-		u[i,1]=contorno[1]
-		u[i,m]=contorno[2]
+	A = matriz_1D(N,α)
+	for t in 2:T
+		u[2:N-1,t] = A\u[2:N-1,t-1]
 	end
 	
 	return u
 end
 
 # ╔═╡ eee66eed-77f8-48d9-9085-bed978700dc9
-function graficar_1D(metodo,α=0.5,r=0.5, m=100, g=g_1D,contorno=[0,0],X=1,Tf=1)
-	u = metodo(α,r,m,g)
-	h = X/m
-	n=size(u)[1]
-	Ω =(0:m-1)*h
+function graficar_1D(;metodo,α=0.5,r=0.5,X=100, g=g_1D,Tf=1,Tlim = 6000, paso=50)
+	u = metodo(α,r,X,g)
+	h = 1/X
+	T = size(u)[end]
+	Ω = (0:X-1)*h
 	u_min = min(u...)
 	u_max = max(u...)
 	
-	@gif for i in 1:100
-		plot(Ω,u[min(i*100,n),:], title = string("Metodo ",metodo," α=",α," r=",r), xlims = (0,1), ylims = (u_min,u_max), legend= false)
+	@gif for t in 1:paso:min(Tlim,T)
+		plot(Ω,u[:,t], title = string("metodo ", metodo," α=",α," r=",r), xlims = (0,1), ylims = (u_min,u_max), legend= false)
 	end
 end
 
 # ╔═╡ 4cd3a6cb-7421-46e7-9d13-4c98c7ccafcb
-graficar_1D(explicito_1D,0.5,0.5)
+graficar_1D(metodo=explicito_1D,α=0.5,r=0.5)
 
 # ╔═╡ d629b7b3-21b9-4e5d-88fb-bff20b10a732
 md""" Funciona bien con estos parametros"""
 
 # ╔═╡ 504b1af4-f66c-4f54-8868-f00dcc6003aa
-graficar_1D(explicito_1D,0.7,0.3)
+graficar_1D(metodo=explicito_1D,α=0.7,r=0.3)
 
 # ╔═╡ 0e26fff0-d74a-4773-a0ff-2630af94bdcf
-md""" Podemos ver que el metodo explicito es inestable, si variamos los parametros nos da resultados indeseados"""
+md""" Podemos ver que el metodo explicito es inestable. Si variamos los parametros nos da resultados indeseados"""
 
 # ╔═╡ e11af7bc-1558-446a-932a-9dab0609e5d5
-graficar_1D(implicito_1D,0.5,0.5)
+graficar_1D(metodo=implicito_1D,α=0.5,r=0.5)
 
 # ╔═╡ 0782a995-cce2-4a5b-8fab-e0c0813dd625
-graficar_1D(implicito_1D,0.7,0.3)
+graficar_1D(metodo=implicito_1D,α=0.7,r=0.3)
 
 # ╔═╡ 892aeeed-1626-4735-af2e-efe7fcd985ed
-graficar_1D(implicito_1D,1,0.7)
+graficar_1D(metodo=implicito_1D,α=1,r=0.7)
 
 # ╔═╡ 76e75f79-49ae-4160-8e97-9e4fb28f7dab
 md""" El metodo implicito es mas estable y nos da mas rango para variar los parametros """
@@ -110,118 +105,105 @@ md""" # Difusion en dos dimensiones """
 
 # ╔═╡ da378fad-3ee9-45ea-8da3-eda94a8ff4c2
 function g_2D(x,y)
-	return 1
+	return sin(x*2π)*sin(y*2π)
 end
 
 # ╔═╡ 1e63b032-7826-46c2-93e8-7d14ccf2d148
-function matriz_2D(m,α,Δt,h)
+function matriz_2D(N,α,Δt,h)
 	val_1 = (Δt*α*4)/(h*h)+1
 	val_2 = -(Δt*α*1)/(h*h)
-	D = [val_1 for i in 1:m*m]
-	D2 = [val_2 for i in 1:m*m-1]
-	D3 = [val_2 for i in 1:m*(m-1)]
-	A = diagm(-m => D3, 1 => D2,0=> D,-1=>D2,m => D3)
+	D = [val_1 for i in 1:N*N]
+	D2 = [val_2 for i in 1:N*N-1]
+	D3 = [val_2 for i in 1:N*(N-1)]
+	for i in N:N:(N*N-1)
+		D2[i] = 0
+    end
+	A = diagm(-N => D3, 1 => D2,0=> D,-1=>D2,N => D3)
 	return A
 end	
 
 # ╔═╡ 03e6ffef-81d2-4632-b0e3-539645d5e178
-function matriz_2D_rala(m,α,Δt,h)
+function matriz_2D_rala(N,α,Δt,h)
 	val_1 = (Δt*α*4)/(h*h)+1
 	val_2 = -(Δt*α*1)/(h*h)
-	D = [val_1 for i in 1:m*m]
-	D2 = [val_2 for i in 1:m*m-1]
-	D3 = [val_2 for i in 1:m*(m-1)]
-	A = spdiagm(-m => D3, 1 => D2,0=> D,-1=>D2,m => D3)
+	D = [val_1 for i in 1:N*N]
+	D2 = [val_2 for i in 1:N*N-1]
+	D3 = [val_2 for i in 1:N*(N-1)]
+	for i in N:N:(N*N-1)
+		D2[i] = 0
+    end
+	A = spdiagm(-N => D3, 1 => D2,0=> D,-1=>D2,N => D3)
 	return A
 end	
 
-# ╔═╡ 5852330e-ddb6-4cef-ac4c-a03531f15061
-function sin_optimizar(m,α,Δt,h)
-	A = matriz_2D(m,α,Δt,h)
-	return A
-end
-
-# ╔═╡ 91e0e91d-0d3f-42e5-bfcf-1ee900525f56
-function rala(m,α,Δt,h)
-	A = matriz_2D_rala(m,α,Δt,h)
-	return A
-end
-
 # ╔═╡ 017a9d33-60ad-4f9d-8419-3f2b04832333
-function LU(m,α,Δt,h)
-	A = matriz_2D(m,α,Δt,h)
+function matriz_2D_LU(N,α,Δt,h)
+	A = matriz_2D(N,α,Δt,h)
 	A_LU = lu(A)
 	return A_LU
 end
 
 # ╔═╡ 7c08ada1-b1cb-479a-ac71-a4d793c92b10
-function rala_LU(m,α,Δt,h)
-	A = matriz_2D_rala(m,α,Δt,h)
+function matriz_2D_rala_LU(N,α,Δt,h)
+	A = matriz_2D_rala(N,α,Δt,h)
 	A_LU = lu(A)
 	return A_LU
 end
 
 # ╔═╡ 3e78a838-9466-4015-b57b-3f981aebe7c8
-function implicito_2D(metodo,α=0.5,r=0.5,m=20,g=g_2D,Tf=1)
-	h = Tf/m	
+function implicito_2D(matriz,α=0.5,r=0.5,N=20,g=g_2D,Tf=1)
+	h = Tf/N	
 	Δt = r * h * h / α 
-	n = Int(ceil(Tf/Δt))
-	u = zeros(n, m, m)
+	T = Int(ceil(Tf/Δt))
+	u = zeros(N, N, T)
 
-	for i in 1:m
-		for j in 1:m
-			u[1,i,j] = g(i*h,j*h)
+	for i in 1:N
+		for j in 1:N
+			u[i,j,1] = g(i*h,j*h)
 		end
 	end
 	
-	A = metodo(m,α,Δt,h)
-    for t in 2:n
-		b=reshape(u[t-1,:, :],(m*m))
+	A = matriz(N-2,α,Δt,h)
+    for t in 2:T
+		b=reshape(u[2:N-1, 2:N-1,t-1],(N-2)*(N-2))
 		U = A\b
-		
-        u[t,:, :] = reshape(U, m, m)
-		for i in 1:m 
-			u[t,i,1] = 0
-			u[t,i,m] = 0
-			u[t,1,i] = 0
-			u[t,m,i] = 0
-		end
+        u[2:N-1, 2:N-1,t] = reshape(U, N-2, N-2)
 	end
 	
 	return u
 end
 
 # ╔═╡ ed9707a7-a1fc-4cd2-9d48-2b07dbde15e5
-@benchmark implicito_2D(sin_optimizar)
+@benchmark implicito_2D(matriz_2D)
 
 # ╔═╡ 095c3bf3-67ff-496f-8725-05ac8543fe92
-@benchmark implicito_2D(rala)
+@benchmark implicito_2D(matriz_2D_rala)
 
 # ╔═╡ 16e461b7-83c5-49eb-968f-4c7cfc8b1d9e
-@benchmark implicito_2D(LU)
+@benchmark implicito_2D(matriz_2D_LU)
 
 # ╔═╡ 813c44e5-eb72-455c-bf79-5c4adc9de8c7
-@benchmark implicito_2D(rala_LU) 
+@benchmark implicito_2D(matriz_2D_rala_LU) 
 
 # ╔═╡ 8253fd40-6c3e-4fbb-9be0-4e324edd661d
 md""" Vemos que la version con mas optimizaciones es la mas eficiente"""
 
 # ╔═╡ 68e3f804-bb93-4cfb-85dc-bb39fd8d0073
-function graficar_2D(metodo,α=0.5,r=0.5,m=20,g=g_2D,Tf=1)
-	u = implicito_2D(metodo,α,r,m,g,Tf)
-	h = 1/(m-1)
-	Ω = (0:(m-1))*h
+function graficar_2D(;matriz,α=0.5,r=0.5,N=20,g=g_2D,Tf=1,Tlim =10^10, paso=1)
+	u = implicito_2D(matriz,α,r,N,g,Tf)
+	h = 1/(N-1)
+	Ω = (0:(N-1))*h
 	u_min = min(u...)
 	u_max = max(u...)
-	N = size(u)[1]
-	@gif for i in 1:200
-		U = u[min(i,N),:,:] 
-		surface(Ω,Ω,U, zlims=(u_min,u_max), title=string("metodo ",metodo," α=",α, " r=", r), clims=(0,1))
+	T = size(u)[end]
+	@gif for t in 1:paso:min(Tlim,T)
+		U = u[:,:,t] 
+		surface(Ω,Ω,U, zlims=(u_min,u_max), title=string(matriz," α=",α, " r=", r), clims=(0,1))
 	end
 end
 
 # ╔═╡ bb95d8ba-6510-442e-b9e3-239825770773
-graficar_2D(rala_LU)
+graficar_2D(matriz=matriz_2D_rala_LU,Tlim=50)
 
 # ╔═╡ 806dde77-2188-4319-9162-fa126b93f240
 md""" ### Difusion con transporte """
@@ -237,68 +219,67 @@ function bola(x,y)
 end
 
 # ╔═╡ 08f33468-897f-4673-8acc-9aa726b19e30
-function matriz_transporte(m,α,r,β,Δt,h)
+function matriz_transporte(N,α,r,β,Δt,h)
     s = β*Δt/(2*h)
 	val_1 = 4*(Δt*α)/(h*h)+1
 	val_2 = -(Δt*α*1)/(h*h)
 
-    D = [val_1 for i in 1:((m+1)*(m+2))]
-	D_i = [val_2+s for i in 1:((m+1)*(m+2)-1)]
-	D_d = [val_2-s for i in 1:((m+1)*(m+2)-1)]
-	for i in (m+1):(m+1):((m+1)*(m+1))
+    D = [val_1 for i in 1:((N+1)*(N+2))]
+	D_i = [val_2+s for i in 1:((N+1)*(N+2)-1)]
+	D_d = [val_2-s for i in 1:((N+1)*(N+2)-1)]
+	for i in (N+1):(N+1):((N+1)*(N+2)-1)
 		D_i[i] = 0
 		D_d[i] = 0
     end
-	D_2 = [val_2 for i in 1:((m+1)*m)]
-	D_3 = [2*val_2 for i in 1:m+1]
+	D_2 = [val_2 for i in 1:((N+1)*N)]
+	D_3 = [2*val_2 for i in 1:N+1]
 	
-	A = diagm(-m-1 => vcat(D_2,D_3), -1 => D_i, 0 => D, 1 => D_d, m+1 => vcat(D_3,D_2))
+	A = diagm(-N-1 => vcat(D_2,D_3), -1 => D_i, 0 => D, 1 => D_d, N+1 => vcat(D_3,D_2))
 
-    for i in 1:(m+1):((m+1)*(m+2))
-		A[m+i,i] = val_2-s
-        A[i,m+i] = val_2+s
+    for i in 1:(N+1):((N+1)*(N+2))
+		A[N+i,i] = val_2-s
+        A[i,N+i] = val_2+s
     end
     return A
 end
 
 # ╔═╡ 3516b29d-c6a7-45c4-9aa4-de5ab5e35a64
-function difusion_transporte(α,r,β,m,g, Tf)
-	h = 1/m
+function difusion_transporte(α,r,β,N,g,Tf)
+	h = 1/N
 	Δt = r*h*h/α 
-	n = Int(ceil(Tf/Δt))
-	u = zeros(n, m+1, m+2)
+	T = Int(ceil(Tf/Δt))
+	u = zeros(N+1, N+2,T)
 	
-    for i in 1:m+1
-        for j in 1:m+2
-            u[1,i,j] = g(h*i-h,h*j-h)
+    for i in 1:N
+        for j in 1:N+1
+            u[i,j,1] = g(h*i-h,h*j-h)
         end
     end
 
-    A = matriz_transporte(m,α,r,β,Δt,h)
-    for t in 2:n
-		b=reshape(u[t-1,:, :],(m+1)*(m+2))
+    A = matriz_transporte(N,α,r,β,Δt,h)
+    for t in 2:T
+		b=reshape(u[:, :,t-1],(N+1)*(N+2))
 		U = A\b
-        u[t,:, :] = reshape(U, m+1, m+2)
-
+        u[:, :,t] = reshape(U, N+1, N+2)
 	end
 	
     return u
 end
 
 # ╔═╡ ffcc22e4-7415-4b08-844a-d78ced6a0eb6
-function graficar_transporte(α=0.2,r=0.5,β=2,m=20,g=bola,Tf=1) 
-	u = difusion_transporte(α,r,β,m,g,Tf)
+function graficar_transporte(;α=0.2,r=0.5,β=2,N=20,g=bola,Tf=1,paso=1,Tlim=10^10) 
+	u = difusion_transporte(α,r,β,N,g,Tf)
 	u_min = min(u...)
 	u_max = max(u...)
-	h1 = 1/(m+1)
-	h2 = 1/(m)
-	Ω1 = (0:(m+1))*h1
-	Ω2 = (0:m)*h2
-	N = size(u)[1]
+	h = 1/N
+	Ωx = (0:(N-1))*h
+	Ωy = (0:N)*h
+	T = size(u)[end]
 	
-    @gif for i in 1:200
-        U = u[min(i,N), :, :]
-		surface(Ω1,Ω2,U, zlims=(u_min,u_max), clims = (u_min,u_max), title=string("α=",α," β=",β))
+    @gif for t in 1:paso:min(Tlim,T)
+        U = u[1:end-1, 1:end-1, t]
+		surface(Ωy,Ωx,U, zlims=(u_min,u_max), clims = (u_min,u_max), title=string("α=",α," β=",β))
+		#surface(Ωx,Ωy,U', zlims=(u_min,u_max), clims = (u_min,u_max), title=string("α=",α," β=",β))
     end
 end
 
@@ -319,7 +300,7 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.9.3"
+julia_version = "1.9.2"
 manifest_format = "2.0"
 project_hash = "d3c98f04ca0340c675c3616abcae2b0067934d5d"
 
@@ -1912,8 +1893,6 @@ version = "1.4.1+1"
 # ╟─da378fad-3ee9-45ea-8da3-eda94a8ff4c2
 # ╟─1e63b032-7826-46c2-93e8-7d14ccf2d148
 # ╟─03e6ffef-81d2-4632-b0e3-539645d5e178
-# ╟─5852330e-ddb6-4cef-ac4c-a03531f15061
-# ╟─91e0e91d-0d3f-42e5-bfcf-1ee900525f56
 # ╟─017a9d33-60ad-4f9d-8419-3f2b04832333
 # ╟─7c08ada1-b1cb-479a-ac71-a4d793c92b10
 # ╟─3e78a838-9466-4015-b57b-3f981aebe7c8
@@ -1928,7 +1907,7 @@ version = "1.4.1+1"
 # ╟─5a2ad20e-e212-4625-94f1-d62ab3a04ecd
 # ╟─08f33468-897f-4673-8acc-9aa726b19e30
 # ╟─3516b29d-c6a7-45c4-9aa4-de5ab5e35a64
-# ╟─ffcc22e4-7415-4b08-844a-d78ced6a0eb6
-# ╟─50e889f5-8ca9-474e-9286-707ec774be9d
+# ╠═ffcc22e4-7415-4b08-844a-d78ced6a0eb6
+# ╠═50e889f5-8ca9-474e-9286-707ec774be9d
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
