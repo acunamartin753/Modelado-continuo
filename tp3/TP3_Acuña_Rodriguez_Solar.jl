@@ -17,18 +17,18 @@ end
 
 # ╔═╡ e5f9a938-7a32-448e-901b-68e8843d315f
 function explicito_1D(α=0.5,r=0.5,N=100,g=g_1D,Tf=1) 
-	h = 1/N
+	h = 1/(N-1)
 	Δt = r * h * h / α
 	T = Int(ceil(Tf/Δt))
 	
 	u = zeros(N,T)
-	for x in 1:N
-		u[x,1] = g(x*h)
+	for i in 1:N
+		u[i,1] = g(i*h)
 	end
 	
 	for t in 2:T
-		for x in 2:N-1
-        	u[x,t] = u[x,t-1]+α*((u[x+1,t-1]-2*u[x,t-1]+u[x-1,t-1])/h*h)
+		for i in 2:N-1
+        	u[i,t] = u[i,t-1]+α*((u[i+1,t-1]-2*u[i,t-1]+u[i-1,t-1])/h*h)
 		end
 	end
 	
@@ -36,35 +36,36 @@ function explicito_1D(α=0.5,r=0.5,N=100,g=g_1D,Tf=1)
 end
 
 # ╔═╡ da682cab-9bfd-4727-bc51-c4c6b3b8664c
-function matriz_1D(N,α)
-	return Tridiagonal(fill(-1*α,N-3),fill(2*α+1,N-2),fill(-1*α,N-3))
+function matriz_1D(I,r)
+	return Tridiagonal(fill(-r,I-1),fill(2*r+1,I),fill(-r,I-1))
 end
 
 # ╔═╡ f7f21345-d7e7-4ebc-aeca-f306ce1e890b
 function implicito_1D(α=0.5,r=0.5,N=100,g=g_1D,Tf=1)
-	h = 1/N
+	h = 1/(N-1)
 	Δt = r*h*h/α
 	T = Int(ceil(Tf/Δt))
 	u = zeros(N,T)
 	
-	for x in 1:N
-		u[x,1] = g(x*h)
+	for i in 1:N
+		u[i,1] = g(i*h)
 	end
-	
-	A = matriz_1D(N,α)
+
+	I = N-2
+	A = matriz_1D(I,r)
 	for t in 2:T
-		u[2:N-1,t] = A\u[2:N-1,t-1]
+		u[2:end-1,t] = A\u[2:end-1,t-1]
 	end
 	
 	return u
 end
 
 # ╔═╡ eee66eed-77f8-48d9-9085-bed978700dc9
-function graficar_1D(;metodo,α=0.5,r=0.5,X=100, g=g_1D,Tf=1,Tlim = 6000, paso=50)
-	u = metodo(α,r,X,g)
-	h = 1/X
+function graficar_1D(;metodo,α=0.5,r=0.5,N=100, g=g_1D,Tf=1,Tlim = 6000, paso=50)
+	u = metodo(α,r,N,g)
+	h = 1/(N-1)
 	T = size(u)[end]
-	Ω = (0:X-1)*h
+	Ω = (0:N-1)*h
 	u_min = min(u...)
 	u_max = max(u...)
 	
@@ -109,50 +110,46 @@ function g_2D(x,y)
 end
 
 # ╔═╡ 1e63b032-7826-46c2-93e8-7d14ccf2d148
-function matriz_2D(N,α,Δt,h)
-	val_1 = (Δt*α*4)/(h*h)+1
-	val_2 = -(Δt*α*1)/(h*h)
-	D = [val_1 for i in 1:N*N]
-	D2 = [val_2 for i in 1:N*N-1]
-	D3 = [val_2 for i in 1:N*(N-1)]
-	for i in N:N:(N*N-1)
+function matriz_2D(I,α,r)
+	D = [1+4*r for i in 1:I*I]
+	D2 = [-r for i in 1:I*I-1]
+	D3 = [-r for i in 1:I*(I-1)]
+	for i in I:I:(I*I-1)
 		D2[i] = 0
     end
-	A = diagm(-N => D3, 1 => D2,0=> D,-1=>D2,N => D3)
+	A = diagm(-I => D3, 1 => D2,0=> D,-1=>D2,I => D3)
 	return A
 end	
 
 # ╔═╡ 03e6ffef-81d2-4632-b0e3-539645d5e178
-function matriz_2D_rala(N,α,Δt,h)
-	val_1 = (Δt*α*4)/(h*h)+1
-	val_2 = -(Δt*α*1)/(h*h)
-	D = [val_1 for i in 1:N*N]
-	D2 = [val_2 for i in 1:N*N-1]
-	D3 = [val_2 for i in 1:N*(N-1)]
-	for i in N:N:(N*N-1)
+function matriz_2D_rala(I,α,r)
+	D = [1+4*r for i in 1:I*I]
+	D2 = [-r for i in 1:I*I-1]
+	D3 = [-r for i in 1:I*(I-1)]
+	for i in I:I:(I*I-1)
 		D2[i] = 0
     end
-	A = spdiagm(-N => D3, 1 => D2,0=> D,-1=>D2,N => D3)
+	A = spdiagm(-I => D3, 1 => D2,0=> D,-1=>D2,I => D3)
 	return A
 end	
 
 # ╔═╡ 017a9d33-60ad-4f9d-8419-3f2b04832333
-function matriz_2D_LU(N,α,Δt,h)
-	A = matriz_2D(N,α,Δt,h)
+function matriz_2D_LU(I,α,r)
+	A = matriz_2D(I,α,r)
 	A_LU = lu(A)
 	return A_LU
 end
 
 # ╔═╡ 7c08ada1-b1cb-479a-ac71-a4d793c92b10
-function matriz_2D_rala_LU(N,α,Δt,h)
-	A = matriz_2D_rala(N,α,Δt,h)
+function matriz_2D_rala_LU(I,α,r)
+	A = matriz_2D_rala(I,α,r)
 	A_LU = lu(A)
 	return A_LU
 end
 
 # ╔═╡ 3e78a838-9466-4015-b57b-3f981aebe7c8
 function implicito_2D(matriz,α=0.5,r=0.5,N=20,g=g_2D,Tf=1)
-	h = Tf/N	
+	h = Tf/(N-1)
 	Δt = r * h * h / α 
 	T = Int(ceil(Tf/Δt))
 	u = zeros(N, N, T)
@@ -162,12 +159,13 @@ function implicito_2D(matriz,α=0.5,r=0.5,N=20,g=g_2D,Tf=1)
 			u[i,j,1] = g(i*h,j*h)
 		end
 	end
-	
-	A = matriz(N-2,α,Δt,h)
+
+	I = N-2
+	A = matriz(I,α,r)
     for t in 2:T
-		b=reshape(u[2:N-1, 2:N-1,t-1],(N-2)*(N-2))
+		b=reshape(u[2:end-1, 2:end-1,t-1],I*I)
 		U = A\b
-        u[2:N-1, 2:N-1,t] = reshape(U, N-2, N-2)
+        u[2:end-1, 2:end-1,t] = reshape(U,I,I)
 	end
 	
 	return u
@@ -197,8 +195,7 @@ function graficar_2D(;matriz,α=0.5,r=0.5,N=20,g=g_2D,Tf=1,Tlim =10^10, paso=1)
 	u_max = max(u...)
 	T = size(u)[end]
 	@gif for t in 1:paso:min(Tlim,T)
-		U = u[:,:,t] 
-		surface(Ω,Ω,U, zlims=(u_min,u_max), title=string(matriz," α=",α, " r=", r), clims=(0,1))
+		surface(Ω,Ω, u[:,:,t], zlims=(u_min,u_max), title=string(matriz," α=",α," r=",r), clims=(0,1))
 	end
 end
 
@@ -218,49 +215,53 @@ function bola(x,y)
 	end
 end
 
-# ╔═╡ 08f33468-897f-4673-8acc-9aa726b19e30
+# ╔═╡ 6aeddae3-4416-415d-b14f-9ca465c600cb
 function matriz_transporte(N,α,r,β,Δt,h)
+	I = N-1
+	J = N
     s = β*Δt/(2*h)
-	val_1 = 4*(Δt*α)/(h*h)+1
-	val_2 = -(Δt*α*1)/(h*h)
 
-    D = [val_1 for i in 1:((N+1)*(N+2))]
-	D_i = [val_2+s for i in 1:((N+1)*(N+2)-1)]
-	D_d = [val_2-s for i in 1:((N+1)*(N+2)-1)]
-	for i in (N+1):(N+1):((N+1)*(N+2)-1)
+    D = [1+4*r for i in 1:I*J]
+	D_i = [-r+s for i in 1:I*J-1]
+	D_d = [-r-s for i in 1:I*J-1]
+	for i in I:I:I*J-1
 		D_i[i] = 0
 		D_d[i] = 0
     end
-	D_2 = [val_2 for i in 1:((N+1)*N)]
-	D_3 = [2*val_2 for i in 1:N+1]
+	D_2 = [-r for i in 1:I*(I-1)]
+	D_3 = [-r*2 for i in 1:I]
 	
-	A = diagm(-N-1 => vcat(D_2,D_3), -1 => D_i, 0 => D, 1 => D_d, N+1 => vcat(D_3,D_2))
+	A = diagm(-I => vcat(D_2,D_3), -1 => D_i, 0 => D, 1 => D_d, I => vcat(D_3,D_2))
 
-    for i in 1:(N+1):((N+1)*(N+2))
-		A[N+i,i] = val_2-s
-        A[i,N+i] = val_2+s
+    for i in 1:I:I*J
+		A[(I-1)+i,i] = -r-s
+        A[i,(I-1)+i] = -r+s
     end
     return A
 end
 
-# ╔═╡ 3516b29d-c6a7-45c4-9aa4-de5ab5e35a64
+# ╔═╡ b3939194-fbc1-4102-8749-9a8a862d1a84
 function difusion_transporte(α,r,β,N,g,Tf)
-	h = 1/N
+	I = N-1
+	J = N
+	h = 1/(N-1)
 	Δt = r*h*h/α 
 	T = Int(ceil(Tf/Δt))
-	u = zeros(N+1, N+2,T)
+	u = zeros(J,J,T)
 	
-    for i in 1:N
-        for j in 1:N+1
+    for i in 1:I
+        for j in 1:J
             u[i,j,1] = g(h*i-h,h*j-h)
         end
     end
 
     A = matriz_transporte(N,α,r,β,Δt,h)
+
     for t in 2:T
-		b=reshape(u[:, :,t-1],(N+1)*(N+2))
+		b=reshape(u[1:end-1, 1:end,t-1],I*J)
 		U = A\b
-        u[:, :,t] = reshape(U, N+1, N+2)
+        u[1:end-1, 1:end,t] = reshape(U,I,J)
+		u[end,:,t] = u[1,:,t]
 	end
 	
     return u
@@ -271,15 +272,12 @@ function graficar_transporte(;α=0.2,r=0.5,β=2,N=20,g=bola,Tf=1,paso=1,Tlim=10^
 	u = difusion_transporte(α,r,β,N,g,Tf)
 	u_min = min(u...)
 	u_max = max(u...)
-	h = 1/N
-	Ωx = (0:(N-1))*h
-	Ωy = (0:N)*h
+	h = 1/(N-1)
 	T = size(u)[end]
+	Ω = (0:(N-1))*h
 	
     @gif for t in 1:paso:min(Tlim,T)
-        U = u[1:end-1, 1:end-1, t]
-		surface(Ωy,Ωx,U, zlims=(u_min,u_max), clims = (u_min,u_max), title=string("α=",α," β=",β))
-		#surface(Ωx,Ωy,U', zlims=(u_min,u_max), clims = (u_min,u_max), title=string("α=",α," β=",β))
+		surface(Ω,Ω, u[:,:, t], zlims=(u_min,u_max), clims = (u_min,u_max), title=string("α=",α," β=",β))
     end
 end
 
@@ -1905,9 +1903,9 @@ version = "1.4.1+1"
 # ╟─bb95d8ba-6510-442e-b9e3-239825770773
 # ╟─806dde77-2188-4319-9162-fa126b93f240
 # ╟─5a2ad20e-e212-4625-94f1-d62ab3a04ecd
-# ╟─08f33468-897f-4673-8acc-9aa726b19e30
-# ╟─3516b29d-c6a7-45c4-9aa4-de5ab5e35a64
-# ╠═ffcc22e4-7415-4b08-844a-d78ced6a0eb6
-# ╠═50e889f5-8ca9-474e-9286-707ec774be9d
+# ╟─6aeddae3-4416-415d-b14f-9ca465c600cb
+# ╟─b3939194-fbc1-4102-8749-9a8a862d1a84
+# ╟─ffcc22e4-7415-4b08-844a-d78ced6a0eb6
+# ╟─50e889f5-8ca9-474e-9286-707ec774be9d
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
