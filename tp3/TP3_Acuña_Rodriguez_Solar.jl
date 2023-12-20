@@ -62,7 +62,7 @@ end
 
 # ╔═╡ eee66eed-77f8-48d9-9085-bed978700dc9
 function graficar_1D(;metodo,α=0.5,r=0.5,N=100, g=g_1D,Tf=1,Tlim = 6000, paso=50)
-	u = metodo(α,r,N,g)
+	u = metodo(α,r,N,g,Tf)
 	h = 1/(N-1)
 	T = size(u)[end]
 	Ω = (0:N-1)*h
