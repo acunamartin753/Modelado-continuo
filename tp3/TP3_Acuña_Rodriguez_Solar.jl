@@ -135,20 +135,16 @@ end
 
 # ╔═╡ 017a9d33-60ad-4f9d-8419-3f2b04832333
 function matriz_2D_LU(I,α,r)
-	A = matriz_2D(I,α,r)
-	A_LU = lu(A)
-	return A_LU
+	return lu(matriz_2D(I,α,r))
 end
 
 # ╔═╡ 7c08ada1-b1cb-479a-ac71-a4d793c92b10
 function matriz_2D_rala_LU(I,α,r)
-	A = matriz_2D_rala(I,α,r)
-	A_LU = lu(A)
-	return A_LU
+	return lu(matriz_2D_rala(I,α,r))
 end
 
 # ╔═╡ 3e78a838-9466-4015-b57b-3f981aebe7c8
-function implicito_2D(matriz,α=0.5,r=0.5,N=20,g=g_2D,Tf=1)
+function implicito_2D(matriz,α=0.5,r=0.5,N=24,g=g_2D,Tf=1)
 	h = 1/(N-1)
 	Δt = r * h * h / α 
 	T = Int(ceil(Tf/Δt))
@@ -187,7 +183,7 @@ end
 md""" Vemos que la version con mas optimizaciones es la mas eficiente"""
 
 # ╔═╡ 68e3f804-bb93-4cfb-85dc-bb39fd8d0073
-function graficar_2D(;matriz,α=0.5,r=0.5,N=20,g=g_2D,Tf=1,Tlim =10^10, paso=1)
+function graficar_2D(;matriz,α=0.5,r=0.5,N=24,g=g_2D,Tf=1,Tlim =10^10, paso=1)
 	u = implicito_2D(matriz,α,r,N,g,Tf)
 	h = 1/(N-1)
 	Ω = (0:(N-1))*h
